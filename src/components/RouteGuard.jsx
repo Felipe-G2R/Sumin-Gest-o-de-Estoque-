@@ -1,100 +1,62 @@
 // ============================================
 // ROUTE GUARD — Proteção de Rotas
 // ============================================
-// Componentes para proteger rotas baseado em autenticação e roles.
-
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useState, useEffect } from 'react';
 
-/**
- * Protege rotas que exigem autenticação
- * Redireciona para /login se não estiver logado
- */
+// Spinner com timeout: se demorar mais que 3s, manda pro login
+function AuthLoading() {
+  const [timedOut, setTimedOut] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setTimedOut(true), 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (timedOut) return <Navigate to="/login" replace />;
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--neutral-900, #0F172A)' }}>
+      <div className="animate-spin rounded-full" style={{ width: 40, height: 40, border: '3px solid transparent', borderTopColor: 'var(--brand-500, #0D9488)', borderRadius: '50%' }} />
+    </div>
+  );
+}
+
 export function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
-  console.log('ProtectedRoute: auth:', isAuthenticated, 'loading:', loading);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-slate-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
+  if (loading) return <AuthLoading />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
 
   return children;
 }
 
-/**
- * Protege rotas que exigem role ADMIN
- * Redireciona para /dashboard se não for admin
- */
 export function AdminRoute({ children }) {
   const { isAuthenticated, isAdmin, loading } = useAuth();
-  console.log('AdminRoute: auth:', isAuthenticated, 'admin:', isAdmin, 'loading:', loading);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-slate-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (!isAdmin) {
-    return <Navigate to="/dashboard" replace />;
-  }
+  if (loading) return <AuthLoading />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAdmin) return <Navigate to="/dashboard" replace />;
 
   return children;
 }
 
-/**
- * Protege rotas que exigem role SUPER_ADMIN
- */
 export function SuperAdminRoute({ children }) {
   const { isAuthenticated, isSuperAdmin, loading } = useAuth();
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-slate-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
-  }
-
+  if (loading) return <AuthLoading />;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (!isSuperAdmin) return <Navigate to="/dashboard" replace />;
 
   return children;
 }
 
-/**
- * Redireciona para /dashboard se já estiver logado
- * Usado nas páginas de login/registro
- */
 export function PublicRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
-  console.log('PublicRoute: auth:', isAuthenticated, 'loading:', loading);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-slate-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
-  }
-
-  if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
-  }
+  if (loading) return <AuthLoading />;
+  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
 
   return children;
 }
