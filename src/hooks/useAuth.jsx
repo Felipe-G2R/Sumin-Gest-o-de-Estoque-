@@ -1,5 +1,5 @@
 // ============================================
-// AUTH CONTEXT & HOOK — Simplificado
+// AUTH CONTEXT & HOOK
 // ============================================
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { authService } from '../services/authService';
@@ -16,14 +16,8 @@ export function AuthProvider({ children }) {
   const fetchProfile = useCallback(async (uid, userObj) => {
     try {
       const perfil = await authService.getProfile(uid);
-      if (perfil) {
-        setProfile(perfil);
-        return perfil;
-      }
-    } catch (err) {
-      console.warn('[Auth] Erro ao buscar perfil:', err.message);
-    }
-    // Fallback
+      if (perfil) { setProfile(perfil); return perfil; }
+    } catch { /* silêncio */ }
     if (userObj) {
       const fallback = {
         id: uid,
@@ -38,14 +32,12 @@ export function AuthProvider({ children }) {
     return null;
   }, []);
 
-  // Um único listener cuida de TUDO: inicial, login, logout, refresh
   useEffect(() => {
     let mounted = true;
 
     const { data: { subscription } } = authService.onAuthStateChange(
       async (event, newSession) => {
         if (!mounted) return;
-        console.log('[Auth] Evento:', event, newSession ? '(com sessão)' : '(sem sessão)');
 
         if (event === 'TOKEN_REFRESHED') {
           setSession(newSession);
@@ -67,13 +59,10 @@ export function AuthProvider({ children }) {
       }
     );
 
-    // Safety: garante que loading nunca fica true eternamente
+    // Safety timeout silencioso
     const safety = setTimeout(() => {
-      if (mounted && loading) {
-        console.warn('[Auth] Safety: forçando loading=false');
-        setLoading(false);
-      }
-    }, 4000);
+      if (mounted) setLoading(false);
+    }, 3000);
 
     return () => {
       mounted = false;
@@ -83,9 +72,7 @@ export function AuthProvider({ children }) {
   }, [fetchProfile]);
 
   async function login({ email, senha }) {
-    // Apenas autentica. O onAuthStateChange cuida do resto.
-    const result = await authService.login({ email, senha });
-    return result;
+    return await authService.login({ email, senha });
   }
 
   async function register({ nome, email, senha }) {
@@ -93,15 +80,10 @@ export function AuthProvider({ children }) {
   }
 
   async function logout() {
-    try {
-      await authService.logout();
-    } catch (err) {
-      console.warn('[Auth] Erro no logout:', err.message);
-      // Limpa estado local mesmo se o logout remoto falhar
-      setUser(null);
-      setProfile(null);
-      setSession(null);
-    }
+    try { await authService.logout(); } catch { /* silêncio */ }
+    setUser(null);
+    setProfile(null);
+    setSession(null);
   }
 
   async function updateProfile(updates) {

@@ -34,16 +34,14 @@ export const authService = {
     if (error) throw new Error('Email ou senha inválidos');
     
     // Verifica se está ativo
-    const { data: profile } = await supabase.from('users').select('ativo').eq('id', data.user.id).single();
+    const { data: profile } = await supabase.from('users').select('ativo').eq('id', data.user.id).maybeSingle();
     if (profile && profile.ativo === false) {
       await this.logoutSemLog();
       throw new Error('Sua conta está desativada');
     }
 
     // Registra evento de auth em background (não bloqueia o login)
-    supabase.rpc('log_auth_event', { p_acao: 'LOGIN' }).catch((err) =>
-      console.warn('[Auth] Falha ao registrar evento de login:', err.message)
-    );
+    supabase.rpc('log_auth_event', { p_acao: 'LOGIN' }).then(null, () => {});
 
     return data;
   },
@@ -55,9 +53,7 @@ export const authService = {
   async logout() {
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
-      supabase.rpc('log_auth_event', { p_acao: 'LOGOUT' }).catch((err) =>
-        console.warn('[Auth] Falha ao registrar evento de logout:', err.message)
-      );
+      supabase.rpc('log_auth_event', { p_acao: 'LOGOUT' }).then(null, () => {});
     }
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
@@ -73,20 +69,16 @@ export const authService = {
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error || !user) return null;
 
-    const { data: profile } = await supabase.from('users').select('*').eq('id', user.id).single();
+    const { data: profile } = await supabase.from('users').select('*').eq('id', user.id).maybeSingle();
     return { ...user, profile };
   },
 
   async getProfile(userId) {
     try {
-      const { data, error } = await supabase.from('users').select('*').eq('id', userId).single();
-      if (error) {
-        console.warn('Perfil não encontrado para o usuário:', userId);
-        return null;
-      }
+      const { data, error } = await supabase.from('users').select('*').eq('id', userId).maybeSingle();
+      if (error) return null;
       return data;
-    } catch (err) {
-      console.error('Erro crítico ao buscar perfil:', err);
+    } catch {
       return null;
     }
   },
