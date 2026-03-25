@@ -40,6 +40,7 @@ export function useProdutos() {
   }, []);
 
   const buscar = useCallback(async (id) => {
+    if (!id) return null;
     setLoading(true);
     setError(null);
     try {
@@ -48,7 +49,6 @@ export function useProdutos() {
       return result;
     } catch (err) {
       setError(err.message);
-      throw err;
     } finally {
       setLoading(false);
     }

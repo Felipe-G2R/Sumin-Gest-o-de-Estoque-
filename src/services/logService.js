@@ -33,7 +33,8 @@ export const logService = {
   },
 
   async buscar(id) {
-    const { data, error } = await supabase.from('logs').select('*, usuario:users(nome, email)').eq('id', id).single();
+    if (!id) return null;
+    const { data, error } = await supabase.from('logs').select('*, usuario:users(nome, email)').eq('id', id).maybeSingle();
     if (error) throw error;
     return data;
   },

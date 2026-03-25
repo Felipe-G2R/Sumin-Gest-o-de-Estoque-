@@ -32,6 +32,7 @@ export const produtoService = {
   },
 
   async buscar(id) {
+    if (!id) throw new Error('ID do produto não informado');
     const { data, error } = await supabase.from('produtos').select('*, fornecedor:fornecedores(nome, id)').eq('id', id).maybeSingle();
     if (error) throw error;
     if (!data) throw new Error('Produto não encontrado');

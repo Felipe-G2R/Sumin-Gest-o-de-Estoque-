@@ -18,7 +18,10 @@ export default function ProdutoDetalhesPage() {
   const { produto, loading, buscar, desativar, reativar } = useProdutos();
   const { isAdmin } = useAuth();
 
-  useEffect(() => { buscar(id); }, [id, buscar]);
+  useEffect(() => {
+    if (!id) { navigate('/produtos'); return; }
+    buscar(id);
+  }, [id, buscar, navigate]);
 
   async function handleDesativar() {
     if (!confirm('Deseja realmente desativar este produto? Ele não aparecerá mais nas listagens.')) return;

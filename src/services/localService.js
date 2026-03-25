@@ -20,8 +20,10 @@ export const localService = {
   },
 
   async buscar(id) {
-    const { data, error } = await supabase.from('locais').select('*').eq('id', id).single();
+    if (!id) throw new Error('ID do local não informado');
+    const { data, error } = await supabase.from('locais').select('*').eq('id', id).maybeSingle();
     if (error) throw error;
+    if (!data) throw new Error('Local não encontrado');
     return data;
   },
 

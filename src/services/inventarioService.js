@@ -14,10 +14,12 @@ export const inventarioService = {
   },
 
   async buscar(id) {
+    if (!id) throw new Error('ID do inventário não informado');
     const { data, error } = await supabase.from('inventarios')
       .select('*, usuario:users(nome), local:locais(nome)')
-      .eq('id', id).single();
+      .eq('id', id).maybeSingle();
     if (error) throw error;
+    if (!data) throw new Error('Inventário não encontrado');
     return data;
   },
 
@@ -72,7 +74,6 @@ export const inventarioService = {
       produto_id: i.produto_id,
       quantidade_sistema: i.quantidade_sistema,
       quantidade_contada: Number(i.quantidade_contada),
-      diferenca: Number(i.quantidade_contada) - i.quantidade_sistema,
       observacao: i.observacao || null,
     }));
 

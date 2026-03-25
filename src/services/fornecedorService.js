@@ -29,7 +29,9 @@ export const fornecedorService = {
   },
 
   async buscar(id) {
-    const { data, error } = await supabase.from('fornecedores').select('*, produtos(id, nome, quantidade_atual, ativo)').eq('id', id).single();
+    if (!id) throw new Error('ID do fornecedor não informado');
+    const { data, error } = await supabase.from('fornecedores').select('*, produtos(id, nome, quantidade_atual, ativo)').eq('id', id).maybeSingle();
+    if (!data) throw new Error('Fornecedor não encontrado');
     if (error) throw error;
     return data;
   },
