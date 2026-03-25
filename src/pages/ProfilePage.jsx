@@ -148,8 +148,8 @@ function TabDadosPessoais({ profile, updateProfile, uploadAvatar }) {
           <label className="form-label">Nível de Permissão</label>
           <div className="flex items-center gap-2 p-3 rounded-md" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
             <Shield size={16} style={{ color: 'var(--neutral-400)' }} />
-            <span className={`badge ${profile?.role === 'ADMIN' ? 'badge-brand' : 'badge-neutral'}`}>
-              {profile?.role === 'ADMIN' ? 'Administrador' : 'Usuário'}
+            <span className={`badge ${profile?.role === 'SUPER_ADMIN' ? 'badge-warning' : profile?.role === 'ADMIN' ? 'badge-brand' : 'badge-neutral'}`}>
+              {profile?.role === 'SUPER_ADMIN' ? 'Super Admin' : profile?.role === 'ADMIN' ? 'Administrador' : 'Usuário'}
             </span>
           </div>
         </div>
