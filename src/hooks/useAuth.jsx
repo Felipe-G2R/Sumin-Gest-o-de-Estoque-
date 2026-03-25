@@ -3,6 +3,7 @@
 // ============================================
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { authService } from '../services/authService';
+import { supabase } from '../lib/supabase';
 import { ROLES } from '../lib/constants';
 
 const AuthContext = createContext(null);
@@ -13,23 +14,21 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = useCallback(async (uid, userObj) => {
+  // Busca perfil REAL no banco. Retorna null se não existe.
+  const fetchProfile = useCallback(async (uid) => {
     try {
       const perfil = await authService.getProfile(uid);
       if (perfil) { setProfile(perfil); return perfil; }
     } catch { /* silêncio */ }
-    if (userObj) {
-      const fallback = {
-        id: uid,
-        nome: userObj.user_metadata?.nome || 'Usuário',
-        email: userObj.email,
-        role: 'USER',
-        ativo: true,
-      };
-      setProfile(fallback);
-      return fallback;
-    }
     return null;
+  }, []);
+
+  // Força logout local (limpa tudo sem chamar RPC)
+  const forceLocalLogout = useCallback(async () => {
+    try { await supabase.auth.signOut(); } catch { /* */ }
+    setUser(null);
+    setProfile(null);
+    setSession(null);
   }, []);
 
   useEffect(() => {
@@ -45,31 +44,40 @@ export function AuthProvider({ children }) {
           return;
         }
 
-        setSession(newSession);
-
         if (newSession?.user) {
-          setUser(newSession.user);
-          await fetchProfile(newSession.user.id, newSession.user);
+          // Tem sessão — verificar se o user existe no banco
+          const perfil = await fetchProfile(newSession.user.id);
+
+          if (!mounted) return;
+
+          if (perfil) {
+            // User válido — setar tudo
+            setSession(newSession);
+            setUser(newSession.user);
+          } else {
+            // SESSÃO ÓRFÃ — user não existe no banco. Limpar tudo.
+            await forceLocalLogout();
+          }
         } else {
+          // Sem sessão — limpar estado
           setUser(null);
           setProfile(null);
+          setSession(null);
         }
 
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     );
 
-    // Safety timeout silencioso
-    const safety = setTimeout(() => {
-      if (mounted) setLoading(false);
-    }, 3000);
+    // Safety timeout
+    const safety = setTimeout(() => { if (mounted) setLoading(false); }, 3000);
 
     return () => {
       mounted = false;
       clearTimeout(safety);
       subscription?.unsubscribe();
     };
-  }, [fetchProfile]);
+  }, [fetchProfile, forceLocalLogout]);
 
   async function login({ email, senha }) {
     return await authService.login({ email, senha });
@@ -80,10 +88,7 @@ export function AuthProvider({ children }) {
   }
 
   async function logout() {
-    try { await authService.logout(); } catch { /* silêncio */ }
-    setUser(null);
-    setProfile(null);
-    setSession(null);
+    await forceLocalLogout();
   }
 
   async function updateProfile(updates) {
@@ -100,7 +105,7 @@ export function AuthProvider({ children }) {
 
   const isSuperAdmin = profile?.role === ROLES.SUPER_ADMIN;
   const isAdmin = isSuperAdmin || profile?.role === ROLES.ADMIN;
-  const isAuthenticated = !!session && !!user;
+  const isAuthenticated = !!session && !!user && !!profile;
   const lojaId = profile?.loja_id;
 
   return (
