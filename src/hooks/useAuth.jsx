@@ -1,7 +1,7 @@
 // ============================================
-// AUTH CONTEXT & HOOK
+// AUTH CONTEXT & HOOK — Versão estável
 // ============================================
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { authService } from '../services/authService';
 import { supabase } from '../lib/supabase';
 import { ROLES } from '../lib/constants';
@@ -13,63 +13,74 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  // Busca perfil REAL no banco. Retorna null se não existe.
-  const fetchProfile = useCallback(async (uid) => {
-    try {
-      const perfil = await authService.getProfile(uid);
-      if (perfil) { setProfile(perfil); return perfil; }
-    } catch { /* silêncio */ }
-    return null;
-  }, []);
-
-  // Força logout local (limpa tudo sem chamar RPC)
-  const forceLocalLogout = useCallback(async () => {
-    try { await supabase.auth.signOut(); } catch { /* */ }
-    setUser(null);
-    setProfile(null);
-    setSession(null);
-  }, []);
+  const processingRef = useRef(false);
+  const currentUidRef = useRef(null);
 
   useEffect(() => {
     let mounted = true;
 
-    const { data: { subscription } } = authService.onAuthStateChange(
-      async (event, newSession) => {
-        if (!mounted) return;
-
-        if (event === 'TOKEN_REFRESHED') {
-          setSession(newSession);
-          if (newSession?.user) setUser(newSession.user);
-          return;
-        }
-
-        if (newSession?.user) {
-          // Tem sessão — verificar se o user existe no banco
-          const perfil = await fetchProfile(newSession.user.id);
-
-          if (!mounted) return;
-
-          if (perfil) {
-            // User válido — setar tudo
-            setSession(newSession);
-            setUser(newSession.user);
-          } else {
-            // SESSÃO ÓRFÃ — user não existe no banco. Limpar tudo.
-            await forceLocalLogout();
-          }
-        } else {
-          // Sem sessão — limpar estado
-          setUser(null);
-          setProfile(null);
-          setSession(null);
-        }
-
-        if (mounted) setLoading(false);
+    async function loadProfile(uid) {
+      try {
+        const perfil = await authService.getProfile(uid);
+        return perfil || null;
+      } catch {
+        return null;
       }
+    }
+
+    async function handleSession(newSession) {
+      if (!mounted) return;
+
+      // Sem sessão — limpar tudo
+      if (!newSession?.user) {
+        currentUidRef.current = null;
+        setUser(null);
+        setProfile(null);
+        setSession(null);
+        setLoading(false);
+        return;
+      }
+
+      const uid = newSession.user.id;
+
+      // Mesmo user que já está carregado — ignorar (evita loop)
+      if (uid === currentUidRef.current && profile) {
+        setLoading(false);
+        return;
+      }
+
+      // Evitar processamento duplicado
+      if (processingRef.current) return;
+      processingRef.current = true;
+
+      const perfil = await loadProfile(uid);
+
+      if (!mounted) { processingRef.current = false; return; }
+
+      if (perfil) {
+        currentUidRef.current = uid;
+        setSession(newSession);
+        setUser(newSession.user);
+        setProfile(perfil);
+      } else {
+        // User não existe no banco — sessão órfã
+        currentUidRef.current = null;
+        try { await supabase.auth.signOut(); } catch {}
+        setUser(null);
+        setProfile(null);
+        setSession(null);
+      }
+
+      processingRef.current = false;
+      if (mounted) setLoading(false);
+    }
+
+    // Listener único
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, newSession) => { handleSession(newSession); }
     );
 
-    // Safety timeout
+    // Safety
     const safety = setTimeout(() => { if (mounted) setLoading(false); }, 3000);
 
     return () => {
@@ -77,18 +88,25 @@ export function AuthProvider({ children }) {
       clearTimeout(safety);
       subscription?.unsubscribe();
     };
-  }, [fetchProfile, forceLocalLogout]);
+  }, []);
 
   async function login({ email, senha }) {
+    processingRef.current = false; // Reset para permitir processamento
+    currentUidRef.current = null;
     return await authService.login({ email, senha });
+  }
+
+  async function logout() {
+    currentUidRef.current = null;
+    processingRef.current = false;
+    try { await supabase.auth.signOut(); } catch {}
+    setUser(null);
+    setProfile(null);
+    setSession(null);
   }
 
   async function register({ nome, email, senha }) {
     return await authService.register({ nome, email, senha });
-  }
-
-  async function logout() {
-    await forceLocalLogout();
   }
 
   async function updateProfile(updates) {
