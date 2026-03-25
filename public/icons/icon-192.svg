@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+  <rect width="192" height="192" rx="35" fill="#0D9488"/>
+  <text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" 
+    font-family="system-ui, -apple-system, sans-serif" font-weight="800" 
+    font-size="73" fill="white" letter-spacing="-0.02em">LC</text>
+  <rect x="23.04" y="149.76" width="145.92000000000002" height="8" rx="4" fill="rgba(255,255,255,0.4)"/>
+</svg>
