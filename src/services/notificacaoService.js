@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 
 export const notificacaoService = {
   async listar(filtros = {}) {
-    let query = supabase.from('notificacoes').select('*, produto:produtos(nome)', { count: 'exact' });
+    let query = supabase.from('notificacoes').select('*, produto:produtos(id, nome)', { count: 'exact' });
 
     if (filtros.lida !== undefined) {
       query = query.eq('lida', filtros.lida);

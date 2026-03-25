@@ -94,7 +94,7 @@ function NotificationItem({ notif, onMarcarLida, onNavigate }) {
         </div>
         <p className="alert-item-text">
           {notif.mensagem}
-          {notif.produto && (
+          {notif.produto?.id && (
             <span
               style={{ color: 'var(--brand-600)', cursor: 'pointer', marginLeft: 4 }}
               onClick={() => onNavigate(`/produtos/${notif.produto.id}`)}
@@ -173,7 +173,7 @@ export default function NotificacoesPage() {
     setVerificando(true);
     try {
       const result = await verificarVencimentos();
-      toast.success(`Verificação concluída. ${result.length} notificações geradas.`);
+      toast.success('Verificação de vencimentos concluída!');
       listar({ tipo: filtroTipo || undefined });
     } catch (err) {
       toast.error(err.message);
