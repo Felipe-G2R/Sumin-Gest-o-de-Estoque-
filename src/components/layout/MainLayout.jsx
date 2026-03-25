@@ -7,7 +7,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useNotificacoes } from '../../hooks/useNotificacoes';
 import Logo from '../Logo';
 import GlobalSearch from '../ui/GlobalSearch';
-import PWAInstallPrompt from '../PWAInstallPrompt';
+// PWA desabilitado
 import {
   LayoutDashboard, Package, Truck, ArrowLeftRight, Bell, ScrollText,
   Users, LogOut, Menu, X, ShieldCheck, MapPin, ClipboardList,
@@ -280,7 +280,7 @@ export default function MainLayout({ children }) {
       </nav>
 
       {/* PWA Install Prompt */}
-      <PWAInstallPrompt />
+      {/* PWA removido */}
     </div>
   );
 }
