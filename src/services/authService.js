@@ -40,8 +40,8 @@ export const authService = {
       throw new Error('Sua conta está desativada');
     }
 
-    // Registra evento de auth em background (não bloqueia o login)
-    supabase.rpc('log_auth_event', { p_acao: 'LOGIN' }).then(null, () => {});
+    // Registra evento de auth em background
+    try { supabase.rpc('log_auth_event', { p_acao: 'LOGIN' }); } catch {}
 
     return data;
   },
@@ -51,12 +51,8 @@ export const authService = {
   },
 
   async logout() {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      supabase.rpc('log_auth_event', { p_acao: 'LOGOUT' }).then(null, () => {});
-    }
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    try { await supabase.rpc('log_auth_event', { p_acao: 'LOGOUT' }); } catch {}
+    await supabase.auth.signOut();
   },
 
   async getSession() {

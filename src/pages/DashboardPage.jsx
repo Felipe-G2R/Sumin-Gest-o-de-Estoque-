@@ -59,7 +59,13 @@ export default function DashboardPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    Promise.all([carregarTudo(), carregarDistribuicaoCategorias()]);
+    let cancelled = false;
+    async function load() {
+      if (cancelled) return;
+      await Promise.all([carregarTudo(), carregarDistribuicaoCategorias()]).catch(() => {});
+    }
+    load();
+    return () => { cancelled = true; };
   }, [carregarTudo, carregarDistribuicaoCategorias]);
 
   function getMovIcon(tipo) {

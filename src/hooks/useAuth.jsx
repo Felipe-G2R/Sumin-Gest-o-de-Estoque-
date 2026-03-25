@@ -1,5 +1,5 @@
 // ============================================
-// AUTH CONTEXT & HOOK — Versão estável
+// AUTH CONTEXT & HOOK — v3 blindado
 // ============================================
 import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { authService } from '../services/authService';
@@ -13,25 +13,16 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
-  const processingRef = useRef(false);
   const currentUidRef = useRef(null);
 
   useEffect(() => {
     let mounted = true;
-
-    async function loadProfile(uid) {
-      try {
-        const perfil = await authService.getProfile(uid);
-        return perfil || null;
-      } catch {
-        return null;
-      }
-    }
+    let processing = false;
 
     async function handleSession(newSession) {
       if (!mounted) return;
 
-      // Sem sessão — limpar tudo
+      // Sem sessão
       if (!newSession?.user) {
         currentUidRef.current = null;
         setUser(null);
@@ -43,62 +34,64 @@ export function AuthProvider({ children }) {
 
       const uid = newSession.user.id;
 
-      // Mesmo user que já está carregado — ignorar (evita loop)
-      if (uid === currentUidRef.current && profile) {
+      // Mesmo user já carregado — só atualizar sessão
+      if (uid === currentUidRef.current) {
+        setSession(newSession);
         setLoading(false);
         return;
       }
 
-      // Evitar processamento duplicado
-      if (processingRef.current) return;
-      processingRef.current = true;
+      // Evitar duplicado — mas SEMPRE liberar o lock no finally
+      if (processing) return;
+      processing = true;
 
-      const perfil = await loadProfile(uid);
+      try {
+        let perfil = null;
+        try {
+          perfil = await authService.getProfile(uid);
+        } catch { /* silêncio */ }
 
-      if (!mounted) { processingRef.current = false; return; }
+        if (!mounted) return;
 
-      if (perfil) {
-        currentUidRef.current = uid;
-        setSession(newSession);
-        setUser(newSession.user);
-        setProfile(perfil);
-      } else {
-        // User não existe no banco — sessão órfã
-        currentUidRef.current = null;
-        try { await supabase.auth.signOut(); } catch {}
-        setUser(null);
-        setProfile(null);
-        setSession(null);
+        if (perfil) {
+          currentUidRef.current = uid;
+          setSession(newSession);
+          setUser(newSession.user);
+          setProfile(perfil);
+        } else {
+          currentUidRef.current = null;
+          try { await supabase.auth.signOut(); } catch {}
+          setUser(null);
+          setProfile(null);
+          setSession(null);
+        }
+      } finally {
+        processing = false;
+        if (mounted) setLoading(false);
       }
-
-      processingRef.current = false;
-      if (mounted) setLoading(false);
     }
 
-    // Listener único
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, newSession) => { handleSession(newSession); }
     );
 
-    // Safety
     const safety = setTimeout(() => { if (mounted) setLoading(false); }, 3000);
 
     return () => {
       mounted = false;
+      processing = false;
       clearTimeout(safety);
       subscription?.unsubscribe();
     };
   }, []);
 
   async function login({ email, senha }) {
-    processingRef.current = false; // Reset para permitir processamento
     currentUidRef.current = null;
     return await authService.login({ email, senha });
   }
 
   async function logout() {
     currentUidRef.current = null;
-    processingRef.current = false;
     try { await supabase.auth.signOut(); } catch {}
     setUser(null);
     setProfile(null);
@@ -111,9 +104,9 @@ export function AuthProvider({ children }) {
 
   async function updateProfile(updates) {
     if (!profile?.id) return;
-    const updatedProfile = await authService.updateProfile(profile.id, updates);
-    setProfile(updatedProfile);
-    return updatedProfile;
+    const updated = await authService.updateProfile(profile.id, updates);
+    setProfile(updated);
+    return updated;
   }
 
   async function uploadAvatar(file) {

@@ -72,19 +72,38 @@ export const lojaService = {
   },
 
   async criarUsuarioNaLoja({ nome, email, senha, role, lojaId }) {
-    // 1. Criar no Auth via admin (precisa service_role, então usamos signUp normal)
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password: senha,
-      options: { data: { nome } }
-    });
-    if (authError) throw authError;
+    // Usar fetch direto na API do Supabase Auth Admin para não deslogar o admin atual
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error('Você precisa estar logado para criar usuários');
 
-    // 2. Inserir perfil com loja_id específica
+    // Criar user via API admin do GoTrue (usando o token do admin logado)
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/auth/v1/admin/users`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+        'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({
+        email,
+        password: senha,
+        email_confirm: true,
+        user_metadata: { nome },
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.msg || err.message || 'Erro ao criar usuário');
+    }
+
+    const newUser = await res.json();
+
+    // Inserir perfil com loja_id específica
     const { data: profile, error: profileError } = await supabase
       .from('users')
       .insert({
-        id: authData.user.id,
+        id: newUser.id,
         nome,
         email,
         role: role || 'USER',
@@ -94,7 +113,7 @@ export const lojaService = {
       .single();
     if (profileError) throw profileError;
 
-    return { auth: authData, profile };
+    return { auth: newUser, profile };
   },
 
   async moverUsuarioParaLoja(userId, novaLojaId) {

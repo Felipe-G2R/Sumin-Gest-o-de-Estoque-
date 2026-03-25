@@ -58,7 +58,7 @@ export default function MainLayout({ children }) {
   }, [sidebarCollapsed]);
 
   async function handleLogout() {
-    await logout();
+    try { await logout(); } catch {}
     navigate('/login');
   }
 
