@@ -2,7 +2,7 @@
 // LOGIN — "The Sterile Tech" Auth UI
 // ============================================
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import Logo from '../components/Logo';
 import { Mail, Lock, Loader2 } from 'lucide-react';
@@ -112,8 +112,7 @@ export default function LoginPage() {
           borderTop: '1px solid var(--border-color)',
           background: 'var(--bg-secondary)',
         }}>
-          <span className="body-s">Não tem conta? </span>
-          <Link to="/register" style={{ fontSize: 13, fontWeight: 600 }}>Criar conta</Link>
+          <span className="body-s" style={{ color: 'var(--neutral-400)' }}>Acesso restrito. Solicite ao administrador.</span>
         </div>
       </div>
     </div>

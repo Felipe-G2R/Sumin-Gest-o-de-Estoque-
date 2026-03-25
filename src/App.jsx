@@ -1,36 +1,113 @@
 // ============================================
-// APP — Configuração de Rotas (Atualizado)
+// APP — Configuração de Rotas
 // ============================================
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { AuthProvider } from './hooks/useAuth';
-import { ProtectedRoute, AdminRoute, SuperAdminRoute, PublicRoute } from './components/RouteGuard';
-
-// --- Páginas ---
+import { AuthProvider, useAuth } from './hooks/useAuth';
 import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import DashboardPage from './pages/DashboardPage';
-import ProdutosPage from './pages/ProdutosPage';
-import ProdutoFormPage from './pages/ProdutoFormPage';
-import ProdutoDetalhesPage from './pages/ProdutoDetalhesPage';
-import FornecedoresPage from './pages/FornecedoresPage';
-import FornecedorFormPage from './pages/FornecedorFormPage';
-import FornecedorDetalhesPage from './pages/FornecedorDetalhesPage';
-import MovimentacoesPage from './pages/MovimentacoesPage';
-import MovimentacaoFormPage from './pages/MovimentacaoFormPage';
-import NotificacoesPage from './pages/NotificacoesPage';
-import AdminLogsPage from './pages/AdminLogsPage';
-import AdminUsuariosPage from './pages/AdminUsuariosPage';
-import ProfilePage from './pages/ProfilePage';
 
-// --- Novas Páginas ---
-import LocaisPage from './pages/LocaisPage';
-import LocalFormPage from './pages/LocalFormPage';
-import InventarioPage from './pages/InventarioPage';
-import InventarioContagemPage from './pages/InventarioContagemPage';
-import RelatoriosPage from './pages/RelatoriosPage';
-import SugestoesCompraPage from './pages/SugestoesCompraPage';
-import SuperAdminPage from './pages/SuperAdminPage';
+// Lazy imports — só carrega quando autenticado
+import { lazy, Suspense } from 'react';
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const ProdutosPage = lazy(() => import('./pages/ProdutosPage'));
+const ProdutoFormPage = lazy(() => import('./pages/ProdutoFormPage'));
+const ProdutoDetalhesPage = lazy(() => import('./pages/ProdutoDetalhesPage'));
+const FornecedoresPage = lazy(() => import('./pages/FornecedoresPage'));
+const FornecedorFormPage = lazy(() => import('./pages/FornecedorFormPage'));
+const FornecedorDetalhesPage = lazy(() => import('./pages/FornecedorDetalhesPage'));
+const MovimentacoesPage = lazy(() => import('./pages/MovimentacoesPage'));
+const MovimentacaoFormPage = lazy(() => import('./pages/MovimentacaoFormPage'));
+const NotificacoesPage = lazy(() => import('./pages/NotificacoesPage'));
+const AdminLogsPage = lazy(() => import('./pages/AdminLogsPage'));
+const AdminUsuariosPage = lazy(() => import('./pages/AdminUsuariosPage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const LocaisPage = lazy(() => import('./pages/LocaisPage'));
+const LocalFormPage = lazy(() => import('./pages/LocalFormPage'));
+const InventarioPage = lazy(() => import('./pages/InventarioPage'));
+const InventarioContagemPage = lazy(() => import('./pages/InventarioContagemPage'));
+const RelatoriosPage = lazy(() => import('./pages/RelatoriosPage'));
+const SugestoesCompraPage = lazy(() => import('./pages/SugestoesCompraPage'));
+const SuperAdminPage = lazy(() => import('./pages/SuperAdminPage'));
+
+function LoadingSpinner() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--neutral-900, #0F172A)' }}>
+      <div style={{ width: 40, height: 40, border: '3px solid transparent', borderTopColor: 'var(--brand-500, #0D9488)', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }} />
+    </div>
+  );
+}
+
+// Barreira total: sem login = só vê LoginPage. Ponto.
+function AppRoutes() {
+  const { isAuthenticated, isAdmin, isSuperAdmin, loading } = useAuth();
+
+  // Carregando auth — mostra spinner por no máximo 3s
+  if (loading) return <LoadingSpinner />;
+
+  // NÃO AUTENTICADO — só login existe
+  if (!isAuthenticated) {
+    return (
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
+  }
+
+  // AUTENTICADO — todas as rotas disponíveis
+  return (
+    <Suspense fallback={<LoadingSpinner />}>
+      <Routes>
+        {/* Dashboard */}
+        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/perfil" element={<ProfilePage />} />
+
+        {/* Produtos */}
+        <Route path="/produtos" element={<ProdutosPage />} />
+        <Route path="/produtos/novo" element={<ProdutoFormPage />} />
+        <Route path="/produtos/:id" element={<ProdutoDetalhesPage />} />
+        <Route path="/produtos/:id/editar" element={<ProdutoFormPage />} />
+
+        {/* Fornecedores */}
+        <Route path="/fornecedores" element={<FornecedoresPage />} />
+        <Route path="/fornecedores/novo" element={<FornecedorFormPage />} />
+        <Route path="/fornecedores/:id" element={<FornecedorDetalhesPage />} />
+        <Route path="/fornecedores/:id/editar" element={<FornecedorFormPage />} />
+
+        {/* Movimentações */}
+        <Route path="/movimentacoes" element={<MovimentacoesPage />} />
+        <Route path="/movimentacoes/entrada" element={<MovimentacaoFormPage tipo="ENTRADA" />} />
+        <Route path="/movimentacoes/saida" element={<MovimentacaoFormPage tipo="SAIDA" />} />
+
+        {/* Locais */}
+        <Route path="/locais" element={<LocaisPage />} />
+        <Route path="/locais/novo" element={<LocalFormPage />} />
+        <Route path="/locais/:id/editar" element={<LocalFormPage />} />
+
+        {/* Inventário */}
+        <Route path="/inventario" element={<InventarioPage />} />
+        <Route path="/inventario/:id/contagem" element={<InventarioContagemPage />} />
+
+        {/* Relatórios */}
+        <Route path="/relatorios" element={<RelatoriosPage />} />
+        <Route path="/sugestoes-compra" element={<SugestoesCompraPage />} />
+
+        {/* Notificações */}
+        <Route path="/notificacoes" element={<NotificacoesPage />} />
+
+        {/* Admin */}
+        {isAdmin && <Route path="/admin/logs" element={<AdminLogsPage />} />}
+        {isAdmin && <Route path="/admin/usuarios" element={<AdminUsuariosPage />} />}
+
+        {/* Super Admin */}
+        {isSuperAdmin && <Route path="/super-admin" element={<SuperAdminPage />} />}
+
+        {/* Qualquer outra rota → dashboard */}
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </Suspense>
+  );
+}
 
 function App() {
   return (
@@ -40,59 +117,7 @@ function App() {
           style: { fontSize: 13, borderRadius: 'var(--radius-md)' },
           duration: 3000,
         }} />
-        <Routes>
-          {/* Rotas Públicas */}
-          <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-          <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
-
-          {/* Rotas Protegidas (USER + ADMIN) */}
-          <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-          <Route path="/perfil" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-
-          {/* Produtos */}
-          <Route path="/produtos" element={<ProtectedRoute><ProdutosPage /></ProtectedRoute>} />
-          <Route path="/produtos/novo" element={<ProtectedRoute><ProdutoFormPage /></ProtectedRoute>} />
-          <Route path="/produtos/:id" element={<ProtectedRoute><ProdutoDetalhesPage /></ProtectedRoute>} />
-          <Route path="/produtos/:id/editar" element={<ProtectedRoute><ProdutoFormPage /></ProtectedRoute>} />
-
-          {/* Fornecedores */}
-          <Route path="/fornecedores" element={<ProtectedRoute><FornecedoresPage /></ProtectedRoute>} />
-          <Route path="/fornecedores/novo" element={<ProtectedRoute><FornecedorFormPage /></ProtectedRoute>} />
-          <Route path="/fornecedores/:id" element={<ProtectedRoute><FornecedorDetalhesPage /></ProtectedRoute>} />
-          <Route path="/fornecedores/:id/editar" element={<ProtectedRoute><FornecedorFormPage /></ProtectedRoute>} />
-
-          {/* Movimentações */}
-          <Route path="/movimentacoes" element={<ProtectedRoute><MovimentacoesPage /></ProtectedRoute>} />
-          <Route path="/movimentacoes/entrada" element={<ProtectedRoute><MovimentacaoFormPage tipo="ENTRADA" /></ProtectedRoute>} />
-          <Route path="/movimentacoes/saida" element={<ProtectedRoute><MovimentacaoFormPage tipo="SAIDA" /></ProtectedRoute>} />
-
-          {/* Locais de Estoque */}
-          <Route path="/locais" element={<ProtectedRoute><LocaisPage /></ProtectedRoute>} />
-          <Route path="/locais/novo" element={<ProtectedRoute><LocalFormPage /></ProtectedRoute>} />
-          <Route path="/locais/:id/editar" element={<ProtectedRoute><LocalFormPage /></ProtectedRoute>} />
-
-          {/* Inventário Físico */}
-          <Route path="/inventario" element={<ProtectedRoute><InventarioPage /></ProtectedRoute>} />
-          <Route path="/inventario/:id/contagem" element={<ProtectedRoute><InventarioContagemPage /></ProtectedRoute>} />
-
-          {/* Relatórios e Inteligência */}
-          <Route path="/relatorios" element={<ProtectedRoute><RelatoriosPage /></ProtectedRoute>} />
-          <Route path="/sugestoes-compra" element={<ProtectedRoute><SugestoesCompraPage /></ProtectedRoute>} />
-
-          {/* Notificações */}
-          <Route path="/notificacoes" element={<ProtectedRoute><NotificacoesPage /></ProtectedRoute>} />
-
-          {/* Rotas Admin */}
-          <Route path="/admin/logs" element={<AdminRoute><AdminLogsPage /></AdminRoute>} />
-          <Route path="/admin/usuarios" element={<AdminRoute><AdminUsuariosPage /></AdminRoute>} />
-
-          {/* Rotas Super Admin */}
-          <Route path="/super-admin" element={<SuperAdminRoute><SuperAdminPage /></SuperAdminRoute>} />
-
-          {/* Rota padrão */}
-          <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
+        <AppRoutes />
       </AuthProvider>
     </BrowserRouter>
   );
