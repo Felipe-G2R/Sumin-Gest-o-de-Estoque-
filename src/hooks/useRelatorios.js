@@ -12,93 +12,45 @@ export function useRelatorios() {
   const [error, setError] = useState(null);
 
   const carregarConsumo = useCallback(async (dias = 30) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await relatorioService.getConsumo(dias);
-      setConsumo(result);
-      return result;
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
+    setLoading(true); setError(null);
+    try { const r = await relatorioService.getConsumo(dias); setConsumo(r); return r; }
+    catch (err) { setError(err.message); }
+    finally { setLoading(false); }
   }, []);
 
   const carregarCurvaABC = useCallback(async (dias = 90) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await relatorioService.getCurvaABC(dias);
-      setCurvaABC(result);
-      return result;
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
+    setLoading(true); setError(null);
+    try { const r = await relatorioService.getCurvaABC(dias); setCurvaABC(r); return r; }
+    catch (err) { setError(err.message); }
+    finally { setLoading(false); }
   }, []);
 
   const carregarPrevisaoVencimento = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await relatorioService.getPrevisaoVencimento();
-      setPrevisaoVencimento(result);
-      return result;
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
+    setLoading(true); setError(null);
+    try { const r = await relatorioService.getPrevisaoVencimento(); setPrevisaoVencimento(r); return r; }
+    catch (err) { setError(err.message); }
+    finally { setLoading(false); }
   }, []);
 
   const carregarSugestoesCompra = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await relatorioService.getSugestoesCompra();
-      setSugestoesCompra(result);
-      return result;
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
+    setLoading(true); setError(null);
+    try { const r = await relatorioService.getSugestoesCompra(); setSugestoesCompra(r); return r; }
+    catch (err) { setError(err.message); }
+    finally { setLoading(false); }
   }, []);
 
   const carregarCustoProcedimento = useCallback(async (dias = 30) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await relatorioService.getCustoPorProcedimento(dias);
-      setCustoProcedimento(result);
-      return result;
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
+    setLoading(true); setError(null);
+    try { const r = await relatorioService.getCustoPorProcedimento(dias); setCustoProcedimento(r); return r; }
+    catch (err) { setError(err.message); }
+    finally { setLoading(false); }
   }, []);
 
   const carregarDistribuicaoCategorias = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await relatorioService.getDistribuicaoCategorias();
-      setDistribuicaoCategorias(result);
-      return result;
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
+    setLoading(true); setError(null);
+    try { const r = await relatorioService.getDistribuicaoCategorias(); setDistribuicaoCategorias(r); return r; }
+    catch (err) { setError(err.message); }
+    finally { setLoading(false); }
   }, []);
 
   return {

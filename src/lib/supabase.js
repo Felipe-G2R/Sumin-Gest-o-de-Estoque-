@@ -18,7 +18,7 @@ if (useMock) {
   const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('Supabase URL ou Anon Key não configurados no .env.local');
+    throw new Error('VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY são obrigatórios no .env.local');
   }
 
   supabase = createClient(supabaseUrl, supabaseAnonKey, {
