@@ -1,8 +1,10 @@
 import { supabase } from '../lib/supabase';
+import { aplicarFiltroLoja, exigirLojaParaCriar } from '../lib/queryHelpers';
 
 export const localService = {
   async listar(filtros = {}) {
-    let query = supabase.from('locais').select('*', { count: 'exact' });
+    let query = supabase.from('locais').select('*, loja:lojas(id, nome)', { count: 'exact' });
+    query = aplicarFiltroLoja(query, filtros.lojaId);
 
     if (filtros.ativo !== undefined) query = query.eq('ativo', filtros.ativo);
     if (filtros.tipo) query = query.eq('tipo', filtros.tipo);
@@ -13,8 +15,10 @@ export const localService = {
     return { locais: data, total: count };
   },
 
-  async listarAtivos() {
-    const { data, error } = await supabase.from('locais').select('*').eq('ativo', true).order('nome');
+  async listarAtivos(lojaId = null) {
+    let query = supabase.from('locais').select('*').eq('ativo', true);
+    query = aplicarFiltroLoja(query, lojaId);
+    const { data, error } = await query.order('nome');
     if (error) throw error;
     return data;
   },
@@ -27,8 +31,9 @@ export const localService = {
     return data;
   },
 
-  async criar(dados) {
-    const { data, error } = await supabase.from('locais').insert([dados]).select().single();
+  async criar(dados, lojaId = null) {
+    const payload = exigirLojaParaCriar(dados, lojaId ?? dados.loja_id);
+    const { data, error } = await supabase.from('locais').insert([payload]).select().single();
     if (error) throw error;
     return data;
   },

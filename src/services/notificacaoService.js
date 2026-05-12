@@ -2,10 +2,15 @@
 // NOTIFICACAO SERVICE — Conectado ao Supabase Real
 // ============================================
 import { supabase } from '../lib/supabase';
+import { aplicarFiltroLoja } from '../lib/queryHelpers';
 
 export const notificacaoService = {
   async listar(filtros = {}) {
-    let query = supabase.from('notificacoes').select('*, produto:produtos(id, nome)', { count: 'exact' });
+    let query = supabase
+      .from('notificacoes')
+      .select('*, produto:produtos(id, nome), loja:lojas(id, nome)', { count: 'exact' });
+
+    query = aplicarFiltroLoja(query, filtros.lojaId);
 
     if (filtros.lida !== undefined) {
       query = query.eq('lida', filtros.lida);
@@ -22,8 +27,10 @@ export const notificacaoService = {
     };
   },
 
-  async contarNaoLidas() {
-    const { count, error } = await supabase.from('notificacoes').select('*', { count: 'exact', head: true }).eq('lida', false);
+  async contarNaoLidas(lojaId = null) {
+    let query = supabase.from('notificacoes').select('*', { count: 'exact', head: true }).eq('lida', false);
+    query = aplicarFiltroLoja(query, lojaId);
+    const { count, error } = await query;
     if (error) throw error;
     return count || 0;
   },
@@ -33,8 +40,10 @@ export const notificacaoService = {
     if (error) throw error;
   },
 
-  async marcarTodasComoLidas() {
-    const { error } = await supabase.from('notificacoes').update({ lida: true }).eq('lida', false);
+  async marcarTodasComoLidas(lojaId = null) {
+    let query = supabase.from('notificacoes').update({ lida: true }).eq('lida', false);
+    query = aplicarFiltroLoja(query, lojaId);
+    const { error } = await query;
     if (error) throw error;
   },
 

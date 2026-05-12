@@ -6,6 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useFornecedores } from '../hooks/useFornecedores';
 import MainLayout from '../components/layout/MainLayout';
 import ConfirmModal from '../components/ui/ConfirmModal';
+import NovoBotao from '../components/ui/NovoBotao';
 import { exportToCSV, exportToPDF } from '../lib/export';
 import { Search, Plus, Phone, Mail, MapPin, Truck, Trash2, FileDown, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -74,9 +75,9 @@ export default function FornecedoresPage() {
           <button className="btn btn-secondary btn-sm" onClick={handleExportPDF}>
             <FileText size={16} /> <span className="hide-mobile">PDF</span>
           </button>
-          <Link to="/fornecedores/novo" className="btn btn-primary">
+          <NovoBotao to="/fornecedores/novo" className="btn btn-primary">
             <Plus size={16} /> Novo Fornecedor
-          </Link>
+          </NovoBotao>
         </div>
       </div>
 
@@ -111,7 +112,7 @@ export default function FornecedoresPage() {
             <div className="empty-state-icon"><Truck size={32} /></div>
             <h3>Nenhum fornecedor cadastrado</h3>
             <p>Cadastre seus fornecedores para vincular aos produtos.</p>
-            <Link to="/fornecedores/novo" className="btn btn-primary"><Plus size={16} /> Cadastrar fornecedor</Link>
+            <NovoBotao to="/fornecedores/novo" className="btn btn-primary"><Plus size={16} /> Cadastrar fornecedor</NovoBotao>
           </div>
         )}
 

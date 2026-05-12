@@ -1,7 +1,9 @@
 import { useState, useCallback } from 'react';
 import { localService } from '../services/localService';
+import { useLojaAtiva } from '../contexts/LojaAtivaContext';
 
 export function useLocais() {
+  const { lojaAtivaId } = useLojaAtiva();
   const [locais, setLocais] = useState([]);
   const [local, setLocal] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -9,15 +11,19 @@ export function useLocais() {
 
   const listar = useCallback(async (filtros = {}) => {
     setLoading(true); setError(null);
-    try { const r = await localService.listar(filtros); setLocais(r.locais); return r; }
+    try {
+      const r = await localService.listar({ ...filtros, lojaId: filtros.lojaId ?? lojaAtivaId });
+      setLocais(r.locais);
+      return r;
+    }
     catch (err) { setError(err.message); }
     finally { setLoading(false); }
-  }, []);
+  }, [lojaAtivaId]);
 
   const listarAtivos = useCallback(async () => {
-    try { return await localService.listarAtivos(); }
+    try { return await localService.listarAtivos(lojaAtivaId); }
     catch (err) { setError(err.message); return []; }
-  }, []);
+  }, [lojaAtivaId]);
 
   const buscar = useCallback(async (id) => {
     if (!id) return null;
@@ -29,10 +35,10 @@ export function useLocais() {
 
   const criar = useCallback(async (dados) => {
     setLoading(true); setError(null);
-    try { return await localService.criar(dados); }
+    try { return await localService.criar(dados, lojaAtivaId); }
     catch (err) { setError(err.message); throw err; }
     finally { setLoading(false); }
-  }, []);
+  }, [lojaAtivaId]);
 
   const atualizar = useCallback(async (id, dados) => {
     setLoading(true); setError(null);

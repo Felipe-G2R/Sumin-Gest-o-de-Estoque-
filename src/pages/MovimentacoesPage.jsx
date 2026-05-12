@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
+import NovoBotao from '../components/ui/NovoBotao';
 
 function getTipoBadge(tipo) {
   if (tipo === 'ENTRADA') return 'badge badge-success';
@@ -91,12 +92,12 @@ export default function MovimentacoesPage() {
           <button className="btn btn-secondary btn-sm" onClick={handleExportPDF}>
             <FileText size={16} /> <span className="hide-mobile">PDF</span>
           </button>
-          <Link to="/movimentacoes/entrada" className="btn btn-secondary btn-sm">
+          <NovoBotao to="/movimentacoes/entrada" className="btn btn-secondary btn-sm">
             <ArrowDownCircle size={16} /> <span className="hide-mobile">Entrada</span>
-          </Link>
-          <Link to="/movimentacoes/saida" className="btn btn-primary btn-sm">
+          </NovoBotao>
+          <NovoBotao to="/movimentacoes/saida" className="btn btn-primary btn-sm">
             <ArrowUpCircle size={16} /> <span className="hide-mobile">Saída</span>
-          </Link>
+          </NovoBotao>
         </div>
       </div>
 

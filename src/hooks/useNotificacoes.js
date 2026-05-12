@@ -4,11 +4,13 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { notificacaoService } from '../services/notificacaoService';
 import { useAuth } from './useAuth';
+import { useLojaAtiva } from '../contexts/LojaAtivaContext';
 
 const POLL_INTERVAL = 120_000; // 2 min
 
 export function useNotificacoes() {
   const { isAuthenticated } = useAuth();
+  const { lojaAtivaId } = useLojaAtiva();
   const [notificacoes, setNotificacoes] = useState([]);
   const [naoLidas, setNaoLidas] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -18,10 +20,10 @@ export function useNotificacoes() {
 
   const atualizarContagem = useCallback(async () => {
     try {
-      const count = await notificacaoService.contarNaoLidas();
+      const count = await notificacaoService.contarNaoLidas(lojaAtivaId);
       setNaoLidas(count);
     } catch { /* silêncio */ }
-  }, []);
+  }, [lojaAtivaId]);
 
   // Polling único — um setInterval, limpo no unmount
   useEffect(() => {
@@ -39,7 +41,7 @@ export function useNotificacoes() {
     setLoading(true);
     setError(null);
     try {
-      const result = await notificacaoService.listar(filtros);
+      const result = await notificacaoService.listar({ ...filtros, lojaId: filtros.lojaId ?? lojaAtivaId });
       setNotificacoes(result.notificacoes);
       setPaginacao({ total: result.total, pagina: result.pagina, totalPaginas: result.totalPaginas });
       return result;
@@ -48,7 +50,7 @@ export function useNotificacoes() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [lojaAtivaId]);
 
   const marcarComoLida = useCallback(async (id) => {
     try {
@@ -62,13 +64,13 @@ export function useNotificacoes() {
 
   const marcarTodasComoLidas = useCallback(async () => {
     try {
-      await notificacaoService.marcarTodasComoLidas();
+      await notificacaoService.marcarTodasComoLidas(lojaAtivaId);
       setNotificacoes(prev => prev.map(n => ({ ...n, lida: true })));
       setNaoLidas(0);
     } catch (err) {
       setError(err.message);
     }
-  }, []);
+  }, [lojaAtivaId]);
 
   const verificarVencimentos = useCallback(async () => {
     setLoading(true);

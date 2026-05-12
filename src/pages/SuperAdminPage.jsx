@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MainLayout from '../components/layout/MainLayout';
+import ConfirmModal from '../components/ui/ConfirmModal';
 import { lojaService } from '../services/lojaService';
 import { useAuth } from '../hooks/useAuth';
 import { ROLES } from '../lib/constants';
@@ -11,7 +12,7 @@ import { formatarDataHora } from '../lib/utils';
 import {
   Building2, Users, Plus, Edit2, UserPlus, ChevronDown, ChevronUp,
   Shield, ShieldCheck, Store, Mail, Phone, MapPin, UserCheck, UserX,
-  Eye, Loader2
+  Eye, Loader2, Trash2, Ban, RotateCcw
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -23,7 +24,7 @@ function roleLabel(role) {
 
 export default function SuperAdminPage() {
   const navigate = useNavigate();
-  const { isSuperAdmin } = useAuth();
+  const { isSuperAdmin, user: currentUser } = useAuth();
   const [lojas, setLojas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedLoja, setExpandedLoja] = useState(null);
@@ -34,6 +35,11 @@ export default function SuperAdminPage() {
   const [showNovaLoja, setShowNovaLoja] = useState(false);
   const [showNovoUser, setShowNovoUser] = useState(null); // lojaId
   const [saving, setSaving] = useState(false);
+
+  // Confirmação de ações destrutivas
+  // shape: { kind: 'desativar'|'reativar'|'excluir', user: {...}, lojaId }
+  const [pendingAction, setPendingAction] = useState(null);
+  const [actionLoading, setActionLoading] = useState(null); // userId em processamento
 
   // Form states
   const [lojaForm, setLojaForm] = useState({ nome: '', cnpj: '', endereco: '', telefone: '', email: '' });
@@ -122,7 +128,66 @@ export default function SuperAdminPage() {
     }
   }
 
-  const totalUsers = Object.values(lojaUsers).flat().length;
+  async function refreshUsersDaLoja(lojaId) {
+    try {
+      const users = await lojaService.listarUsuariosDaLoja(lojaId);
+      setLojaUsers(prev => ({ ...prev, [lojaId]: users }));
+    } catch (err) {
+      toast.error('Erro ao recarregar usuários: ' + err.message);
+    }
+  }
+
+  async function executarAcao() {
+    if (!pendingAction) return;
+    const { kind, user: alvo, lojaId } = pendingAction;
+    setActionLoading(alvo.id);
+    try {
+      if (kind === 'desativar') {
+        await lojaService.desativarUsuario(alvo.id);
+        toast.success(`${alvo.nome} foi desativado.`);
+      } else if (kind === 'reativar') {
+        await lojaService.reativarUsuario(alvo.id);
+        toast.success(`${alvo.nome} foi reativado.`);
+      } else if (kind === 'excluir') {
+        await lojaService.excluirUsuario(alvo.id);
+        toast.success(`${alvo.nome} foi excluído definitivamente.`);
+      }
+      await refreshUsersDaLoja(lojaId);
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setActionLoading(null);
+      setPendingAction(null);
+    }
+  }
+
+  function configConfirmacao() {
+    if (!pendingAction) return { title: '', message: '', confirmText: '', variant: 'default' };
+    const { kind, user: alvo } = pendingAction;
+    if (kind === 'desativar') {
+      return {
+        title: 'Desativar usuário',
+        message: `Desativar "${alvo.nome}" (${alvo.email}). Ele não conseguirá mais fazer login, mas o histórico fica preservado.`,
+        confirmText: 'Desativar',
+        variant: 'default',
+      };
+    }
+    if (kind === 'reativar') {
+      return {
+        title: 'Reativar usuário',
+        message: `Reativar "${alvo.nome}" (${alvo.email}). Ele voltará a conseguir fazer login.`,
+        confirmText: 'Reativar',
+        variant: 'default',
+      };
+    }
+    return {
+      title: 'Excluir definitivamente',
+      message: `Excluir PERMANENTEMENTE "${alvo.nome}" (${alvo.email}). Esta ação não pode ser desfeita. Se o usuário tiver histórico de movimentações, logs ou inventários, a exclusão será bloqueada — use "Desativar" nesse caso.`,
+      confirmText: 'Excluir',
+      variant: 'danger',
+    };
+  }
+
 
   return (
     <MainLayout>
@@ -266,14 +331,17 @@ export default function SuperAdminPage() {
                             <th>Permissão</th>
                             <th>Status</th>
                             <th>Cadastrado</th>
+                            <th style={{ textAlign: 'right' }}>Ações</th>
                           </tr>
                         </thead>
                         <tbody>
                           {lojaUsers[loja.id].map(u => {
                             const rl = roleLabel(u.role);
+                            const ehVoceMesmo = u.id === currentUser?.id;
+                            const carregandoAcao = actionLoading === u.id;
                             return (
-                              <tr key={u.id} style={{ opacity: u.ativo ? 1 : 0.5 }}>
-                                <td style={{ fontWeight: 500 }}>{u.nome}</td>
+                              <tr key={u.id} style={{ opacity: u.ativo ? 1 : 0.55 }}>
+                                <td style={{ fontWeight: 500 }}>{u.nome}{ehVoceMesmo && <span className="badge badge-brand" style={{ marginLeft: 8 }}>você</span>}</td>
                                 <td>
                                   <span className="body-s flex items-center gap-1">
                                     <Mail size={12} style={{ color: 'var(--neutral-400)' }} />
@@ -288,6 +356,42 @@ export default function SuperAdminPage() {
                                   </span>
                                 </td>
                                 <td><span className="mono-s">{formatarDataHora(u.criado_em)}</span></td>
+                                <td style={{ textAlign: 'right' }}>
+                                  {ehVoceMesmo ? (
+                                    <span className="body-s text-muted">—</span>
+                                  ) : (
+                                    <div className="flex items-center gap-1" style={{ justifyContent: 'flex-end' }}>
+                                      {u.ativo ? (
+                                        <button
+                                          className="btn btn-ghost btn-icon btn-sm"
+                                          title="Desativar (impede login, mantém histórico)"
+                                          disabled={carregandoAcao}
+                                          onClick={() => setPendingAction({ kind: 'desativar', user: u, lojaId: loja.id })}
+                                        >
+                                          {carregandoAcao ? <Loader2 size={14} className="spin" /> : <Ban size={14} />}
+                                        </button>
+                                      ) : (
+                                        <button
+                                          className="btn btn-ghost btn-icon btn-sm"
+                                          title="Reativar usuário"
+                                          disabled={carregandoAcao}
+                                          onClick={() => setPendingAction({ kind: 'reativar', user: u, lojaId: loja.id })}
+                                        >
+                                          {carregandoAcao ? <Loader2 size={14} className="spin" /> : <RotateCcw size={14} />}
+                                        </button>
+                                      )}
+                                      <button
+                                        className="btn btn-ghost btn-icon btn-sm"
+                                        title="Excluir definitivamente"
+                                        disabled={carregandoAcao}
+                                        style={{ color: 'var(--destructive-500)' }}
+                                        onClick={() => setPendingAction({ kind: 'excluir', user: u, lojaId: loja.id })}
+                                      >
+                                        {carregandoAcao ? <Loader2 size={14} className="spin" /> : <Trash2 size={14} />}
+                                      </button>
+                                    </div>
+                                  )}
+                                </td>
                               </tr>
                             );
                           })}
@@ -404,6 +508,14 @@ export default function SuperAdminPage() {
           </div>
         </div>
       )}
+
+      {/* Confirmação de ações destrutivas (desativar/reativar/excluir) */}
+      <ConfirmModal
+        isOpen={!!pendingAction}
+        onClose={() => setPendingAction(null)}
+        onConfirm={executarAcao}
+        {...configConfirmacao()}
+      />
 
       <style>{`
         .modal-overlay {

@@ -7,6 +7,7 @@ import { useDashboard } from '../hooks/useDashboard';
 import { useRelatorios } from '../hooks/useRelatorios';
 import { useAuth } from '../hooks/useAuth';
 import MainLayout from '../components/layout/MainLayout';
+import NovoBotao from '../components/ui/NovoBotao';
 import MovimentacoesChart from '../components/charts/MovimentacoesChart';
 import CategoriasPieChart from '../components/charts/CategoriasPieChart';
 import { tempoRelativo } from '../lib/utils';
@@ -97,10 +98,10 @@ export default function DashboardPage() {
             </div>
             <h3>Bem-vindo ao LogControl!</h3>
             <p>Seu estoque está vazio. Comece cadastrando seu primeiro produto para ter controle total do seu inventário.</p>
-            <Link to="/produtos/novo" className="btn btn-primary" style={{ height: 48, paddingInline: 'var(--space-8)' }}>
+            <NovoBotao to="/produtos/novo" className="btn btn-primary" style={{ height: 48, paddingInline: 'var(--space-8)' }}>
               <Package size={18} />
               Cadastrar meu primeiro produto
-            </Link>
+            </NovoBotao>
           </div>
         )}
 
@@ -120,22 +121,22 @@ export default function DashboardPage() {
           <>
             {/* Ações Rápidas */}
             <div className="quick-actions-grid">
-              <Link to="/produtos/novo" className="quick-action-card">
+              <NovoBotao to="/produtos/novo" className="quick-action-card">
                 <Package size={22} className="text-brand" />
                 <span>Novo Produto</span>
-              </Link>
-              <Link to="/movimentacoes/entrada" className="quick-action-card">
+              </NovoBotao>
+              <NovoBotao to="/movimentacoes/entrada" className="quick-action-card">
                 <ArrowDownCircle size={22} style={{ color: 'var(--success-500)' }} />
                 <span>Entrada</span>
-              </Link>
-              <Link to="/movimentacoes/saida" className="quick-action-card">
+              </NovoBotao>
+              <NovoBotao to="/movimentacoes/saida" className="quick-action-card">
                 <ArrowUpCircle size={22} style={{ color: 'var(--destructive-500)' }} />
                 <span>Saída</span>
-              </Link>
-              <Link to="/fornecedores/novo" className="quick-action-card">
+              </NovoBotao>
+              <NovoBotao to="/fornecedores/novo" className="quick-action-card">
                 <Truck size={22} style={{ color: 'var(--info-500)' }} />
                 <span>Fornecedor</span>
-              </Link>
+              </NovoBotao>
               <Link to="/inventario" className="quick-action-card">
                 <ClipboardList size={22} style={{ color: 'var(--warning-500)' }} />
                 <span>Inventário</span>

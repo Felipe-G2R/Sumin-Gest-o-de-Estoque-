@@ -2,10 +2,36 @@
 // PRODUTO SERVICE — Conectado ao Supabase Real
 // ============================================
 import { supabase } from '../lib/supabase';
+import { aplicarFiltroLoja, exigirLojaParaCriar } from '../lib/queryHelpers';
+
+function normalizarPayload(dados) {
+  const out = { ...dados };
+  if ('codigo_barras' in out) {
+    const cb = out.codigo_barras?.toString().trim();
+    out.codigo_barras = cb ? cb : null;
+  }
+  if ('lote' in out) {
+    const lt = out.lote?.toString().trim();
+    out.lote = lt ? lt : null;
+  }
+  return out;
+}
+
+function traduzirErroSupabase(error) {
+  if (error?.code === '23505' && /codigo_barras/i.test(error.message || '')) {
+    return new Error('Já existe um produto cadastrado com este código de barras.');
+  }
+  return error;
+}
 
 export const produtoService = {
-  async listar({ termo = '', categoria = '', ordenacao = 'nome-asc' }) {
-    let query = supabase.from('produtos').select('*, fornecedor:fornecedores(nome, id)', { count: 'exact' }).eq('ativo', true);
+  async listar({ termo = '', categoria = '', ordenacao = 'nome-asc', lojaId = null } = {}) {
+    let query = supabase
+      .from('produtos')
+      .select('*, fornecedor:fornecedores(nome, id), loja:lojas(id, nome)', { count: 'exact' })
+      .eq('ativo', true);
+
+    query = aplicarFiltroLoja(query, lojaId);
 
     if (termo) {
       query = query.or(`nome.ilike.%${termo}%,codigo_barras.ilike.%${termo}%`);
@@ -39,19 +65,23 @@ export const produtoService = {
     return data;
   },
 
-  async criar(dados) {
-    const { data: novoProduto, error } = await supabase.from('produtos').insert([{
-      ...dados,
-      quantidade_atual: Number(dados.quantidade_atual || 0)
-    }]).select().single();
-    if (error) throw error;
+  async criar(dados, lojaId = null) {
+    const payload = normalizarPayload(
+      exigirLojaParaCriar(
+        { ...dados, quantidade_atual: Number(dados.quantidade_atual || 0) },
+        lojaId ?? dados.loja_id
+      )
+    );
+    const { data: novoProduto, error } = await supabase.from('produtos').insert([payload]).select().single();
+    if (error) throw traduzirErroSupabase(error);
 
     return novoProduto;
   },
 
   async atualizar(id, dados) {
-    const { data: atualizado, error } = await supabase.from('produtos').update(dados).eq('id', id).select().single();
-    if (error) throw error;
+    const payload = normalizarPayload(dados);
+    const { data: atualizado, error } = await supabase.from('produtos').update(payload).eq('id', id).select().single();
+    if (error) throw traduzirErroSupabase(error);
 
     return atualizado;
   },

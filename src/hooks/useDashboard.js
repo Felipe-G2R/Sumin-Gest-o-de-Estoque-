@@ -4,8 +4,10 @@
 
 import { useState, useCallback } from 'react';
 import { dashboardService } from '../services/dashboardService';
+import { useLojaAtiva } from '../contexts/LojaAtivaContext';
 
 export function useDashboard() {
+  const { lojaAtivaId } = useLojaAtiva();
   const [stats, setStats] = useState(null);
   const [grafico, setGrafico] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -15,7 +17,7 @@ export function useDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const result = await dashboardService.getStats();
+      const result = await dashboardService.getStats(lojaAtivaId);
       setStats(result);
       return result;
     } catch (err) {
@@ -24,26 +26,26 @@ export function useDashboard() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [lojaAtivaId]);
 
   const carregarGrafico = useCallback(async () => {
     try {
-      const result = await dashboardService.getGraficoMovimentacoes();
+      const result = await dashboardService.getGraficoMovimentacoes(lojaAtivaId);
       setGrafico(result);
       return result;
     } catch (err) {
       console.error('Erro ao carregar gráfico:', err);
       setError(err.message);
     }
-  }, []);
+  }, [lojaAtivaId]);
 
   const carregarTudo = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const [statsResult, graficoResult] = await Promise.all([
-        dashboardService.getStats(),
-        dashboardService.getGraficoMovimentacoes(),
+        dashboardService.getStats(lojaAtivaId),
+        dashboardService.getGraficoMovimentacoes(lojaAtivaId),
       ]);
       setStats(statsResult);
       setGrafico(graficoResult);
@@ -54,7 +56,7 @@ export function useDashboard() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [lojaAtivaId]);
 
   return {
     stats,

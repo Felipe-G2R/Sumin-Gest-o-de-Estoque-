@@ -70,6 +70,8 @@ export default function ProdutoFormPage() {
   async function handleSubmit(e) {
     e.preventDefault();
     try {
+      const codigoBarrasNorm = form.codigo_barras?.trim();
+      const loteNorm = form.lote?.trim();
       const dados = {
         ...form,
         quantidade_atual: Number(form.quantidade_atual),
@@ -78,6 +80,8 @@ export default function ProdutoFormPage() {
         fornecedor_id: form.fornecedor_id || null,
         data_validade: form.data_validade || null,
         local_id: form.local_id || null,
+        codigo_barras: codigoBarrasNorm ? codigoBarrasNorm : null,
+        lote: loteNorm ? loteNorm : null,
       };
       if (isEdit) { await atualizar(id, dados); toast.success('Produto atualizado!'); }
       else { await criar(dados); toast.success('Produto cadastrado!'); }

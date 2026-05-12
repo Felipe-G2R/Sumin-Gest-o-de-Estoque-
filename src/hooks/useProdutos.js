@@ -1,7 +1,9 @@
 import { useState, useCallback } from 'react';
 import { produtoService } from '../services/produtoService';
+import { useLojaAtiva } from '../contexts/LojaAtivaContext';
 
 export function useProdutos() {
+  const { lojaAtivaId } = useLojaAtiva();
   const [produtos, setProdutos] = useState([]);
   const [produto, setProduto] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -11,13 +13,13 @@ export function useProdutos() {
   const listar = useCallback(async (filtros = {}) => {
     setLoading(true); setError(null);
     try {
-      const r = await produtoService.listar(filtros);
+      const r = await produtoService.listar({ ...filtros, lojaId: filtros.lojaId ?? lojaAtivaId });
       setProdutos(r.produtos);
       setPaginacao({ total: r.total, pagina: r.pagina, totalPaginas: r.totalPaginas });
       return r;
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
-  }, []);
+  }, [lojaAtivaId]);
 
   const buscar = useCallback(async (id) => {
     if (!id) return null;
@@ -29,10 +31,10 @@ export function useProdutos() {
 
   const criar = useCallback(async (dados) => {
     setLoading(true); setError(null);
-    try { return await produtoService.criar(dados); }
+    try { return await produtoService.criar(dados, lojaAtivaId); }
     catch (err) { setError(err.message); throw err; }
     finally { setLoading(false); }
-  }, []);
+  }, [lojaAtivaId]);
 
   const atualizar = useCallback(async (id, dados) => {
     setLoading(true); setError(null);

@@ -72,48 +72,38 @@ export const lojaService = {
   },
 
   async criarUsuarioNaLoja({ nome, email, senha, role, lojaId }) {
-    // Usar fetch direto na API do Supabase Auth Admin para não deslogar o admin atual
+    // Delega para a Edge Function que tem acesso à SERVICE_ROLE_KEY.
+    // O admin atual NÃO desloga porque não usamos supabase.auth.signUp aqui.
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) throw new Error('Você precisa estar logado para criar usuários');
 
-    // Criar user via API admin do GoTrue (usando o token do admin logado)
-    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/auth/v1/admin/users`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
-        'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-      },
-      body: JSON.stringify({
-        email,
-        password: senha,
-        email_confirm: true,
-        user_metadata: { nome },
-      }),
-    });
+    const res = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-store-user`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({
+          nome,
+          email,
+          senha,
+          role: role || 'USER',
+          lojaId,
+        }),
+      }
+    );
+
+    let body = null;
+    try { body = await res.json(); } catch { /* sem body */ }
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.msg || err.message || 'Erro ao criar usuário');
+      throw new Error(body?.message || `Erro ao criar usuário (${res.status})`);
     }
 
-    const newUser = await res.json();
-
-    // Inserir perfil com loja_id específica
-    const { data: profile, error: profileError } = await supabase
-      .from('users')
-      .insert({
-        id: newUser.id,
-        nome,
-        email,
-        role: role || 'USER',
-        loja_id: lojaId,
-      })
-      .select()
-      .single();
-    if (profileError) throw profileError;
-
-    return { auth: newUser, profile };
+    return body;
   },
 
   async moverUsuarioParaLoja(userId, novaLojaId) {
@@ -125,5 +115,53 @@ export const lojaService = {
       .single();
     if (error) throw error;
     return data;
+  },
+
+  async desativarUsuario(userId) {
+    const { data, error } = await supabase
+      .from('users')
+      .update({ ativo: false })
+      .eq('id', userId)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async reativarUsuario(userId) {
+    const { data, error } = await supabase
+      .from('users')
+      .update({ ativo: true })
+      .eq('id', userId)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async excluirUsuario(userId) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error('Sessão expirada');
+
+    const res = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-store-user`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ userId }),
+      }
+    );
+
+    let body = null;
+    try { body = await res.json(); } catch { /* */ }
+
+    if (!res.ok) {
+      throw new Error(body?.message || `Erro ao excluir usuário (${res.status})`);
+    }
+    return body;
   },
 };

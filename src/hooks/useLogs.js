@@ -1,7 +1,9 @@
 import { useState, useCallback } from 'react';
 import { logService } from '../services/logService';
+import { useLojaAtiva } from '../contexts/LojaAtivaContext';
 
 export function useLogs() {
+  const { lojaAtivaId } = useLojaAtiva();
   const [logs, setLogs] = useState([]);
   const [log, setLog] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -11,13 +13,13 @@ export function useLogs() {
   const listar = useCallback(async (filtros = {}) => {
     setLoading(true); setError(null);
     try {
-      const r = await logService.listar(filtros);
+      const r = await logService.listar({ ...filtros, lojaId: filtros.lojaId ?? lojaAtivaId });
       setLogs(r.logs);
       setPaginacao({ total: r.total, pagina: r.pagina, totalPaginas: r.totalPaginas });
       return r;
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
-  }, []);
+  }, [lojaAtivaId]);
 
   const buscar = useCallback(async (id) => {
     if (!id) return null;

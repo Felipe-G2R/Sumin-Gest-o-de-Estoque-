@@ -2,24 +2,33 @@
 // DASHBOARD SERVICE — Conectado ao Supabase Real
 // ============================================
 import { supabase } from '../lib/supabase';
+import { aplicarFiltroLoja } from '../lib/queryHelpers';
 
 export const dashboardService = {
-  async getStats() {
+  async getStats(lojaId = null) {
     try {
       const hoje = new Date();
       const trintaDias = new Date();
       trintaDias.setDate(hoje.getDate() + 30);
 
-      // Buscando dados paralelamente para performance
+      const qProd = aplicarFiltroLoja(
+        supabase.from('produtos').select('quantidade_atual, quantidade_minima, data_validade, preco_unitario').eq('ativo', true),
+        lojaId
+      );
+      const qMov = aplicarFiltroLoja(
+        supabase.from('movimentacoes').select('id, tipo, quantidade, criado_em, motivo, produto:produtos(nome, unidade_medida), usuario:users(nome), loja:lojas(nome)'),
+        lojaId
+      ).order('criado_em', { ascending: false }).limit(10);
+      const qNotif = aplicarFiltroLoja(
+        supabase.from('notificacoes').select('id, tipo, mensagem, criado_em, produto:produtos(nome), loja:lojas(nome)').eq('lida', false),
+        lojaId
+      ).order('criado_em', { ascending: false }).limit(20);
+
       const [
         { data: produtos, error: errProd },
         { data: movRecentes, error: errMov },
         { data: notificacoes, error: errNotif }
-      ] = await Promise.all([
-        supabase.from('produtos').select('quantidade_atual, quantidade_minima, data_validade, preco_unitario').eq('ativo', true),
-        supabase.from('movimentacoes').select('id, tipo, quantidade, criado_em, motivo, produto:produtos(nome, unidade_medida), usuario:users(nome)').order('criado_em', { ascending: false }).limit(10),
-        supabase.from('notificacoes').select('id, tipo, mensagem, criado_em, produto:produtos(nome)').eq('lida', false).order('criado_em', { ascending: false }).limit(20)
-      ]);
+      ] = await Promise.all([qProd, qMov, qNotif]);
 
       if (errProd) console.warn('Erro ao buscar produtos:', errProd);
       if (errMov) console.warn('Erro ao buscar movimentações:', errMov);
@@ -72,15 +81,18 @@ export const dashboardService = {
     }
   },
 
-  async getGraficoMovimentacoes() {
+  async getGraficoMovimentacoes(lojaId = null) {
     try {
       const seteDiasAtras = new Date();
       seteDiasAtras.setDate(seteDiasAtras.getDate() - 7);
-      
-      const { data: movimentacoes, error } = await supabase
+
+      let q = supabase
         .from('movimentacoes')
         .select('tipo, quantidade, criado_em')
         .gte('criado_em', seteDiasAtras.toISOString());
+      q = aplicarFiltroLoja(q, lojaId);
+
+      const { data: movimentacoes, error } = await q;
 
       if (error) throw error;
 

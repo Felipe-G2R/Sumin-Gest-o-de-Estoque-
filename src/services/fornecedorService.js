@@ -2,11 +2,17 @@
 // FORNECEDOR SERVICE — Conectado ao Supabase Real
 // ============================================
 import { supabase } from '../lib/supabase';
+import { aplicarFiltroLoja, exigirLojaParaCriar } from '../lib/queryHelpers';
 
 export const fornecedorService = {
   async listar(filtros = {}) {
-    let query = supabase.from('fornecedores').select('*', { count: 'exact' }).eq('ativo', true);
-    
+    let query = supabase
+      .from('fornecedores')
+      .select('*, loja:lojas(id, nome)', { count: 'exact' })
+      .eq('ativo', true);
+
+    query = aplicarFiltroLoja(query, filtros.lojaId);
+
     if (filtros.busca) {
       query = query.or(`nome.ilike.%${filtros.busca}%,cnpj.ilike.%${filtros.busca}%`);
     }
@@ -22,8 +28,10 @@ export const fornecedorService = {
     };
   },
 
-  async listarAtivos() {
-    const { data, error } = await supabase.from('fornecedores').select('id, nome').eq('ativo', true).order('nome');
+  async listarAtivos(lojaId = null) {
+    let query = supabase.from('fornecedores').select('id, nome').eq('ativo', true);
+    query = aplicarFiltroLoja(query, lojaId);
+    const { data, error } = await query.order('nome');
     if (error) throw error;
     return data;
   },
@@ -36,8 +44,9 @@ export const fornecedorService = {
     return data;
   },
 
-  async criar(dados) {
-    const { data: novoFornecedor, error } = await supabase.from('fornecedores').insert([dados]).select().single();
+  async criar(dados, lojaId = null) {
+    const payload = exigirLojaParaCriar(dados, lojaId ?? dados.loja_id);
+    const { data: novoFornecedor, error } = await supabase.from('fornecedores').insert([payload]).select().single();
     if (error) throw error;
 
     return novoFornecedor;

@@ -7,6 +7,7 @@ import { useProdutos } from '../hooks/useProdutos';
 import MainLayout from '../components/layout/MainLayout';
 import ConfirmModal from '../components/ui/ConfirmModal';
 import BarcodeScanner from '../components/BarcodeScanner';
+import NovoBotao from '../components/ui/NovoBotao';
 import { exportToCSV, exportToPDF } from '../lib/export';
 import {
   formatarData, formatarMoeda, statusEstoque, statusVencimento,
@@ -126,10 +127,10 @@ export default function ProdutosPage() {
             <FileText size={16} />
             <span className="hide-mobile">PDF</span>
           </button>
-          <Link to="/produtos/novo" className="btn btn-primary">
+          <NovoBotao to="/produtos/novo" className="btn btn-primary">
             <Plus size={16} />
             Novo Produto
-          </Link>
+          </NovoBotao>
         </div>
       </div>
 
@@ -139,7 +140,7 @@ export default function ProdutosPage() {
             <div className="empty-state-icon"><PackageOpen size={32} /></div>
             <h3>Seu estoque está vazio</h3>
             <p>Cadastre seu primeiro produto para começar a gerenciar seu inventário.</p>
-            <Link to="/produtos/novo" className="btn btn-primary"><Plus size={16} /> Cadastrar produto</Link>
+            <NovoBotao to="/produtos/novo" className="btn btn-primary"><Plus size={16} /> Cadastrar produto</NovoBotao>
           </div>
         )}
 

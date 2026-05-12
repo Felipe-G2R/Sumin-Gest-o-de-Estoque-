@@ -7,12 +7,13 @@ import { useAuth } from '../../hooks/useAuth';
 import { useNotificacoes } from '../../hooks/useNotificacoes';
 import Logo from '../Logo';
 import GlobalSearch from '../ui/GlobalSearch';
+import LojaSwitcher from './LojaSwitcher';
 // PWA desabilitado
 import {
   LayoutDashboard, Package, Truck, ArrowLeftRight, Bell, ScrollText,
   Users, LogOut, Menu, X, ShieldCheck, MapPin, ClipboardList,
   BarChart3, ShoppingCart, Search, ChevronLeft, ChevronRight,
-  Sun, Moon
+  Sun, Moon, Globe2
 } from 'lucide-react';
 
 export default function MainLayout({ children }) {
@@ -153,6 +154,10 @@ export default function MainLayout({ children }) {
           {isSuperAdmin && (
             <>
               {!sidebarCollapsed && <div className="sidebar-section-title">Super Admin</div>}
+              <NavLink to="/administracao-geral" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={() => setSidebarOpen(false)} title="Administração Geral">
+                <Globe2 size={18} />
+                {!sidebarCollapsed && 'Administração Geral'}
+              </NavLink>
               <NavLink to="/super-admin" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={() => setSidebarOpen(false)} title="Gestão de Lojas">
                 <ShieldCheck size={18} />
                 {!sidebarCollapsed && 'Gestão de Lojas'}
@@ -232,6 +237,7 @@ export default function MainLayout({ children }) {
           </button>
 
           <div className="topbar-right">
+            <LojaSwitcher />
             <button
               className="btn btn-ghost btn-icon btn-sm"
               onClick={() => setDarkMode(prev => !prev)}

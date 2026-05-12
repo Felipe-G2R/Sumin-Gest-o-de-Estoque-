@@ -4,6 +4,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './hooks/useAuth';
+import { LojaAtivaProvider } from './contexts/LojaAtivaContext';
 import LoginPage from './pages/LoginPage';
 
 // Lazy imports — só carrega quando autenticado
@@ -28,6 +29,7 @@ const InventarioContagemPage = lazy(() => import('./pages/InventarioContagemPage
 const RelatoriosPage = lazy(() => import('./pages/RelatoriosPage'));
 const SugestoesCompraPage = lazy(() => import('./pages/SugestoesCompraPage'));
 const SuperAdminPage = lazy(() => import('./pages/SuperAdminPage'));
+const AdministracaoGeralPage = lazy(() => import('./pages/AdministracaoGeralPage'));
 
 function LoadingSpinner() {
   return (
@@ -101,6 +103,7 @@ function AppRoutes() {
 
         {/* Super Admin */}
         {isSuperAdmin && <Route path="/super-admin" element={<SuperAdminPage />} />}
+        {isSuperAdmin && <Route path="/administracao-geral" element={<AdministracaoGeralPage />} />}
 
         {/* Qualquer outra rota → dashboard */}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
@@ -113,11 +116,13 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Toaster position="top-right" toastOptions={{
-          style: { fontSize: 13, borderRadius: 'var(--radius-md)' },
-          duration: 3000,
-        }} />
-        <AppRoutes />
+        <LojaAtivaProvider>
+          <Toaster position="top-right" toastOptions={{
+            style: { fontSize: 13, borderRadius: 'var(--radius-md)' },
+            duration: 3000,
+          }} />
+          <AppRoutes />
+        </LojaAtivaProvider>
       </AuthProvider>
     </BrowserRouter>
   );

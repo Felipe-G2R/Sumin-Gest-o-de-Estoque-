@@ -6,6 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useLocais } from '../hooks/useLocais';
 import MainLayout from '../components/layout/MainLayout';
 import ConfirmModal from '../components/ui/ConfirmModal';
+import NovoBotao from '../components/ui/NovoBotao';
 import { TIPO_LOCAL } from '../lib/constants';
 import {
   MapPin, Plus, Search, Edit2, ToggleLeft, ToggleRight, Building, Archive
@@ -131,10 +132,10 @@ export default function LocaisPage() {
           <h1 className="display-l" style={{ fontSize: 24 }}>Locais de Estoque</h1>
         </div>
         <div className="page-header-right">
-          <Link to="/locais/novo" className="btn btn-primary">
+          <NovoBotao to="/locais/novo" className="btn btn-primary">
             <Plus size={16} />
             Novo Local
-          </Link>
+          </NovoBotao>
         </div>
       </div>
 
@@ -193,10 +194,10 @@ export default function LocaisPage() {
             </div>
             <h3>Nenhum local cadastrado</h3>
             <p>Cadastre os locais de armazenamento do seu estoque para organizar melhor seus produtos.</p>
-            <Link to="/locais/novo" className="btn btn-primary">
+            <NovoBotao to="/locais/novo" className="btn btn-primary">
               <Plus size={16} />
               Cadastrar local
-            </Link>
+            </NovoBotao>
           </div>
         )}
 

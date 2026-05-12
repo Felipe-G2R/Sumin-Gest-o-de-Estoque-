@@ -2,6 +2,7 @@
 // LOG SERVICE — Conectado ao Supabase Real
 // ============================================
 import { supabase } from '../lib/supabase';
+import { aplicarFiltroLoja } from '../lib/queryHelpers';
 
 export const logService = {
   async registrar(dados) {
@@ -11,7 +12,9 @@ export const logService = {
   },
 
   async listar(filtros = {}) {
-    let query = supabase.from('logs').select('*, usuario:users(nome, email)', { count: 'exact' });
+    let query = supabase.from('logs').select('*, usuario:users(nome, email), loja:lojas(id, nome)', { count: 'exact' });
+
+    query = aplicarFiltroLoja(query, filtros.lojaId);
 
     if (filtros.usuario_id) query = query.eq('usuario_id', filtros.usuario_id);
     if (filtros.acao) query = query.eq('acao', filtros.acao);
