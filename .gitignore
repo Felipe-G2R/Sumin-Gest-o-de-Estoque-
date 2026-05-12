@@ -21,6 +21,9 @@ supabase/functions/.env
 # Supabase CLI runtime cache
 supabase/.temp/
 
+# Arquivo local com credenciais
+arquivo.md
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
