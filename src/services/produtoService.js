@@ -34,7 +34,9 @@ export const produtoService = {
     query = aplicarFiltroLoja(query, lojaId);
 
     if (termo) {
-      query = query.or(`nome.ilike.%${termo}%,codigo_barras.ilike.%${termo}%`);
+      // Busca no servidor por nome, código de barras ou lote — não depende do
+      // limite de 200 registros carregados na tela.
+      query = query.or(`nome.ilike.%${termo}%,codigo_barras.ilike.%${termo}%,lote.ilike.%${termo}%`);
     }
     if (categoria) {
       query = query.eq('categoria', categoria);

@@ -1,23 +1,30 @@
 // ============================================
 // MOVIMENTAÇÃO FORM — Entrada e Saída
 // ============================================
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useMovimentacoes } from '../hooks/useMovimentacoes';
 import { produtoService } from '../services/produtoService';
+import { useLojaAtiva } from '../contexts/LojaAtivaContext';
 import { MOTIVOS_ENTRADA, MOTIVOS_SAIDA } from '../lib/utils';
 import MainLayout from '../components/layout/MainLayout';
-import { 
-  ArrowLeft, ArrowDownCircle, ArrowUpCircle, 
-  Package, Info, Save, Loader2, Search, AlertCircle
+import {
+  ArrowLeft, ArrowDownCircle, ArrowUpCircle,
+  Package, Info, Save, Loader2, Search, AlertCircle, Store
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function MovimentacaoFormPage({ tipo = 'ENTRADA' }) {
   const navigate = useNavigate();
   const { registrarEntrada, registrarSaida, loading } = useMovimentacoes();
+  const { lojaAtivaId, lojaAtiva, modoGeral } = useLojaAtiva();
   const [produtosAtivos, setProdutosAtivos] = useState([]);
   const [busca, setBusca] = useState('');
+  // Termo já "estabilizado" (debounce) que vai para a query no servidor.
+  const [termoBusca, setTermoBusca] = useState('');
+  const [buscando, setBuscando] = useState(false);
+  // Guardado à parte da lista: o produto escolhido não some quando a busca é limpa.
+  const [produtoSelecionado, setProdutoSelecionado] = useState(null);
 
   const isEntrada = tipo === 'ENTRADA';
   const motivos = isEntrada ? MOTIVOS_ENTRADA : MOTIVOS_SAIDA;
@@ -29,21 +36,44 @@ export default function MovimentacaoFormPage({ tipo = 'ENTRADA' }) {
     observacao: '',
   });
 
-  async function carregarProdutos() {
+  // Debounce da digitação — evita uma query por tecla.
+  useEffect(() => {
+    const t = setTimeout(() => setTermoBusca(busca.trim()), 300);
+    return () => clearTimeout(t);
+  }, [busca]);
+
+  const carregarProdutos = useCallback(async () => {
+    setBuscando(true);
     try {
-      const result = await produtoService.listar({ status: 'ativo', por_pagina: 1000 });
+      // A busca acontece NO SERVIDOR (nome, código de barras ou lote) e filtrada
+      // pela loja ativa. Assim o produto é encontrado mesmo em estoques grandes,
+      // e não há como misturar produtos de lojas diferentes (ex: Lorena e Cunha).
+      const result = await produtoService.listar({
+        ordenacao: 'nome-asc',
+        lojaId: lojaAtivaId,
+        termo: termoBusca,
+      });
       setProdutosAtivos(result.produtos);
     } catch { /* ignore */ }
-  }
+    finally { setBuscando(false); }
+  }, [lojaAtivaId, termoBusca]);
 
   useEffect(() => {
     carregarProdutos();
-  }, []);
+  }, [carregarProdutos]);
+
+  useEffect(() => {
+    // Ao trocar a loja ativa, limpa a seleção — o produto era de outra loja.
+    setForm(f => ({ ...f, produto_id: '' }));
+    setProdutoSelecionado(null);
+    setBusca('');
+  }, [lojaAtivaId]);
 
   async function handleSubmit(e) {
     e.preventDefault();
     if (!form.produto_id) return toast.error('Selecione um produto');
-    
+    if (modoGeral) return toast.error('Selecione uma loja específica no topo antes de registrar a movimentação.');
+
     try {
       const dados = {
         produto_id: form.produto_id,
@@ -66,12 +96,8 @@ export default function MovimentacaoFormPage({ tipo = 'ENTRADA' }) {
     }
   }
 
-  const produtoSelecionado = produtosAtivos.find((p) => p.id === form.produto_id);
-  
-  const produtosFiltrados = produtosAtivos.filter(p => 
-    p.nome.toLowerCase().includes(busca.toLowerCase()) || 
-    p.lote?.toLowerCase().includes(busca.toLowerCase())
-  ).slice(0, 5);
+  // A lista já vem filtrada do servidor; aqui só limitamos o que aparece na tela.
+  const produtosFiltrados = produtosAtivos.slice(0, 8);
 
   return (
     <MainLayout>
@@ -107,26 +133,48 @@ export default function MovimentacaoFormPage({ tipo = 'ENTRADA' }) {
             <div className="card">
               <div className="card-body">
                 <h2 className="heading-s mb-4">Dados da Movimentação</h2>
-                
+
+                {/* Loja ativa — deixa explícito em qual loja a movimentação será registrada */}
+                {modoGeral ? (
+                  <div className="mb-4 p-3 rounded-lg flex gap-2 items-center" style={{ background: 'var(--warning-50)', color: 'var(--warning-700)', border: '1px solid var(--warning-200)' }}>
+                    <AlertCircle size={16} />
+                    <span className="body-s" style={{ fontWeight: 600 }}>
+                      Você está em "Administração Geral". Selecione uma loja específica no topo da página para registrar a movimentação.
+                    </span>
+                  </div>
+                ) : lojaAtiva ? (
+                  <div className="mb-4 p-2 rounded-lg flex gap-2 items-center" style={{ background: 'var(--brand-50)', color: 'var(--brand-800)', border: '1px solid var(--brand-200)' }}>
+                    <Store size={15} />
+                    <span className="body-s">
+                      Loja: <strong>{lojaAtiva.nome}</strong>
+                    </span>
+                  </div>
+                ) : null}
+
                 {/* Seleção de Produto */}
                 <div className="form-group">
                   <label className="form-label">Buscar Produto <span className="required">*</span></label>
                   <div className="table-search" style={{ maxWidth: '100%', marginBottom: 'var(--space-2)' }}>
                     <Search size={15} className="search-icon" />
-                    <input 
-                      type="text" 
-                      className="form-input" 
-                      placeholder="Busque por nome ou lote..."
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="Busque por nome, código de barras ou lote..."
                       value={busca}
                       onChange={(e) => setBusca(e.target.value)}
                     />
+                    {buscando && <Loader2 size={14} className="spin" style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)' }} />}
                   </div>
                   
                   <div className="flex flex-col gap-1">
                     {produtosFiltrados.map(p => (
                       <div 
                         key={p.id}
-                        onClick={() => { setForm(f => ({ ...f, produto_id: p.id })); setBusca(''); }}
+                        onClick={() => {
+                          setForm(f => ({ ...f, produto_id: p.id }));
+                          setProdutoSelecionado(p);
+                          setBusca('');
+                        }}
                         className={`alert-item ${form.produto_id === p.id ? 'unread' : ''}`}
                         style={{ 
                           cursor: 'pointer', 
@@ -135,13 +183,23 @@ export default function MovimentacaoFormPage({ tipo = 'ENTRADA' }) {
                         }}
                       >
                         <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 600, fontSize: 13 }}>{p.nome}</div>
+                          <div style={{ fontWeight: 600, fontSize: 13 }}>
+                            {p.nome}
+                            {modoGeral && p.loja?.nome && (
+                              <span className="badge badge-neutral" style={{ marginLeft: 8, fontSize: 10 }}>
+                                <Store size={10} /> {p.loja.nome}
+                              </span>
+                            )}
+                          </div>
                           <div className="body-s">Lote: {p.lote || 'N/A'} | Estoque: {p.quantidade_atual} {p.unidade_medida}</div>
                         </div>
                       </div>
                     ))}
-                    {busca && produtosFiltrados.length === 0 && (
-                      <p className="body-s" style={{ padding: 'var(--space-2)' }}>Nenhum produto encontrado.</p>
+                    {termoBusca && !buscando && produtosFiltrados.length === 0 && (
+                      <p className="body-s" style={{ padding: 'var(--space-2)' }}>
+                        Nenhum produto encontrado{lojaAtiva ? ` em ${lojaAtiva.nome}` : ''}.
+                        {' '}Confira se o produto está cadastrado nesta loja e ativo.
+                      </p>
                     )}
                   </div>
                 </div>
@@ -187,7 +245,7 @@ export default function MovimentacaoFormPage({ tipo = 'ENTRADA' }) {
                 </div>
 
                 <div className="mt-6 flex gap-3">
-                  <button type="submit" className="btn btn-primary w-full" disabled={loading}>
+                  <button type="submit" className="btn btn-primary w-full" disabled={loading || modoGeral}>
                     {loading ? <Loader2 size={18} className="spin" /> : <Save size={18} />}
                     Confirmar {isEntrada ? 'Entrada' : 'Saída'}
                   </button>
@@ -218,6 +276,11 @@ export default function MovimentacaoFormPage({ tipo = 'ENTRADA' }) {
                       <div>
                         <div style={{ fontWeight: 700, fontSize: 16 }}>{produtoSelecionado.nome}</div>
                         <div className="body-s">SKU: {produtoSelecionado.id.toUpperCase()}</div>
+                        {produtoSelecionado.loja?.nome && (
+                          <div className="body-s flex items-center gap-1" style={{ color: 'var(--brand-700)', fontWeight: 600 }}>
+                            <Store size={12} /> {produtoSelecionado.loja.nome}
+                          </div>
+                        )}
                       </div>
                     </div>
 

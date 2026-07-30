@@ -41,7 +41,9 @@ export const movimentacaoService = {
       .select('quantidade_atual, nome, loja_id')
       .eq('id', produto_id)
       .maybeSingle();
-    if (errProd || !produto) throw new Error('Produto não encontrado');
+    if (errProd || !produto) {
+      throw new Error('Produto não encontrado ou pertence a outra loja. Verifique a loja ativa selecionada no topo da página.');
+    }
 
     const lojaIdFinal = produto.loja_id ?? loja_id ?? lojaIdArg;
 
