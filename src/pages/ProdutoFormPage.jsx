@@ -1,15 +1,18 @@
 // ============================================
 // PRODUTO FORM — com Barcode Scanner
 // ============================================
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useProdutos } from '../hooks/useProdutos';
 import { useFornecedores } from '../hooks/useFornecedores';
 import { useLocais } from '../hooks/useLocais';
+import { useLojaAtiva } from '../contexts/LojaAtivaContext';
+import { produtoService } from '../services/produtoService';
+import { renderBarcode, imprimirEtiqueta } from '../lib/barcodeGenerator';
 import { CATEGORIAS, UNIDADES_MEDIDA } from '../lib/utils';
 import MainLayout from '../components/layout/MainLayout';
 import BarcodeScanner from '../components/BarcodeScanner';
-import { ArrowLeft, Save, Loader2, ScanLine } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, ScanLine, Wand2, Printer } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function ProdutoFormPage() {
@@ -19,9 +22,12 @@ export default function ProdutoFormPage() {
   const { buscar, criar, atualizar, loading } = useProdutos();
   const { listarAtivos } = useFornecedores();
   const { listarAtivos: listarLocaisAtivos } = useLocais();
+  const { lojaAtivaId } = useLojaAtiva();
   const [fornecedoresAtivos, setFornecedoresAtivos] = useState([]);
   const [locaisAtivos, setLocaisAtivos] = useState([]);
   const [showScanner, setShowScanner] = useState(false);
+  const [gerandoCodigo, setGerandoCodigo] = useState(false);
+  const barcodeRef = useRef(null);
 
   const [form, setForm] = useState({
     nome: '', descricao: '', codigo_barras: '', fornecedor_id: '',
@@ -66,6 +72,27 @@ export default function ProdutoFormPage() {
     handleChange('codigo_barras', code);
     toast.success(`Código escaneado: ${code}`);
   }
+
+  // Gera um código interno sequencial (SUM-000001) e preenche o campo.
+  async function handleGerarCodigo() {
+    setGerandoCodigo(true);
+    try {
+      const codigo = await produtoService.gerarCodigoInterno(lojaAtivaId);
+      handleChange('codigo_barras', codigo);
+      toast.success(`Código gerado: ${codigo}`);
+    } catch {
+      toast.error('Não foi possível gerar o código. Tente novamente.');
+    } finally {
+      setGerandoCodigo(false);
+    }
+  }
+
+  // Renderiza o preview do código de barras sempre que o valor mudar.
+  useEffect(() => {
+    if (barcodeRef.current) {
+      renderBarcode(barcodeRef.current, form.codigo_barras?.trim());
+    }
+  }, [form.codigo_barras]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -146,8 +173,18 @@ export default function ProdutoFormPage() {
                   <div className="flex gap-2">
                     <input type="text" className="form-input" value={form.codigo_barras}
                       onChange={e => handleChange('codigo_barras', e.target.value)} placeholder="Opcional" style={{ flex: 1 }} />
+                    <button type="button" className="btn btn-secondary btn-icon" onClick={handleGerarCodigo} disabled={gerandoCodigo} title="Gerar código interno">
+                      {gerandoCodigo ? <Loader2 size={16} className="spin" /> : <Wand2 size={16} />}
+                    </button>
                     <button type="button" className="btn btn-secondary btn-icon" onClick={() => setShowScanner(true)} title="Escanear">
                       <ScanLine size={16} />
+                    </button>
+                  </div>
+                  {/* Preview do código de barras (oculto quando o campo está vazio) */}
+                  <div style={{ marginTop: 'var(--space-2)', display: form.codigo_barras?.trim() ? 'flex' : 'none', alignItems: 'center', gap: 'var(--space-3)' }}>
+                    <svg ref={barcodeRef} style={{ maxWidth: '100%' }} />
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => imprimirEtiqueta(form.codigo_barras.trim(), form.nome)} title="Imprimir etiqueta">
+                      <Printer size={14} /> Etiqueta
                     </button>
                   </div>
                 </div>

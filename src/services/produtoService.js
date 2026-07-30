@@ -92,5 +92,26 @@ export const produtoService = {
     // Soft Delete
     const { error } = await supabase.from('produtos').update({ ativo: false }).eq('id', id);
     if (error) throw error;
+  },
+
+  // Gera o próximo código de barras interno sequencial no formato SUM-000001.
+  // Consulta o maior número já usado (na loja ativa, quando informada) e soma 1.
+  async gerarCodigoInterno(lojaId = null) {
+    let query = supabase
+      .from('produtos')
+      .select('codigo_barras')
+      .ilike('codigo_barras', 'SUM-%');
+    query = aplicarFiltroLoja(query, lojaId);
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    let maior = 0;
+    (data || []).forEach(({ codigo_barras }) => {
+      const n = parseInt(String(codigo_barras).replace(/^SUM-/i, ''), 10);
+      if (!Number.isNaN(n) && n > maior) maior = n;
+    });
+
+    return `SUM-${String(maior + 1).padStart(6, '0')}`;
   }
 };
