@@ -7,12 +7,21 @@ import MainLayout from '../components/layout/MainLayout';
 import { authService } from '../services/authService';
 import { useAuth } from '../hooks/useAuth';
 import { formatarDataHora, tempoRelativo } from '../lib/utils';
-import { ROLES } from '../lib/constants';
+import { ROLES, ROLE_LABELS } from '../lib/constants';
 import {
   Users, Shield, ShieldCheck, UserX, UserCheck, Search,
-  Eye, Edit2, MoreHorizontal, ChevronDown, Mail, CalendarDays
+  Eye, Edit2, MoreHorizontal, ChevronDown, Mail, CalendarDays, ArrowUpCircle
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+
+// Papéis que um admin pode atribuir pela tela (SUPER_ADMIN fica de fora).
+const ROLES_ATRIBUIVEIS = [ROLES.USER, ROLES.ADMIN, ROLES.OPERADOR_SAIDA];
+
+const ROLE_ICONS = {
+  [ROLES.USER]: <Shield size={14} />,
+  [ROLES.ADMIN]: <ShieldCheck size={14} />,
+  [ROLES.OPERADOR_SAIDA]: <ArrowUpCircle size={14} />,
+};
 
 function getInitials(nome) {
   if (!nome) return '??';
@@ -34,6 +43,13 @@ function roleConfig(role) {
       label: 'Administrador',
       class: 'badge-brand',
       icon: <ShieldCheck size={12} />,
+    };
+  }
+  if (role === ROLES.OPERADOR_SAIDA) {
+    return {
+      label: ROLE_LABELS[ROLES.OPERADOR_SAIDA],
+      class: 'badge-info',
+      icon: <ArrowUpCircle size={12} />,
     };
   }
   return {
@@ -338,23 +354,19 @@ export default function AdminUsuariosPage() {
                                   overflow: 'hidden',
                                 }}
                               >
-                                {u.role === ROLES.USER ? (
-                                  <button
-                                    className="dropdown-item"
-                                    onClick={() => handleMudarRole(u.id, ROLES.ADMIN)}
-                                  >
-                                    <ShieldCheck size={14} />
-                                    Tornar Administrador
-                                  </button>
-                                ) : (
-                                  <button
-                                    className="dropdown-item"
-                                    onClick={() => handleMudarRole(u.id, ROLES.USER)}
-                                  >
-                                    <Shield size={14} />
-                                    Tornar Usuário
-                                  </button>
-                                )}
+                                {/* Super Admin não tem o papel alterado por esta tela */}
+                                {(u.role === ROLES.SUPER_ADMIN ? [] : ROLES_ATRIBUIVEIS)
+                                  .filter((r) => r !== u.role)
+                                  .map((r) => (
+                                    <button
+                                      key={r}
+                                      className="dropdown-item"
+                                      onClick={() => handleMudarRole(u.id, r)}
+                                    >
+                                      {ROLE_ICONS[r]}
+                                      Tornar {ROLE_LABELS[r]}
+                                    </button>
+                                  ))}
                                 {u.ativo ? (
                                   <button
                                     className="dropdown-item danger"

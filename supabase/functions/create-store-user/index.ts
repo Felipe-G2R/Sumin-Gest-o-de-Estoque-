@@ -5,7 +5,7 @@
 // ============================================
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.1";
 
-const ALLOWED_ROLES = new Set(["USER", "ADMIN"]);
+const ALLOWED_ROLES = new Set(["USER", "ADMIN", "OPERADOR_SAIDA"]);
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
 
   if (!ALLOWED_ROLES.has(role)) {
     return jsonResponse(
-      { message: "Role inválido (use USER ou ADMIN)" },
+      { message: "Role inválido (use USER, ADMIN ou OPERADOR_SAIDA)" },
       400,
     );
   }

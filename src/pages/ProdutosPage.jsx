@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useProdutos } from '../hooks/useProdutos';
+import { useAuth } from '../hooks/useAuth';
 import MainLayout from '../components/layout/MainLayout';
 import ConfirmModal from '../components/ui/ConfirmModal';
 import BarcodeScanner from '../components/BarcodeScanner';
@@ -33,6 +34,7 @@ function getStockBadge(qtd, min) {
 export default function ProdutosPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { isOperadorSaida } = useAuth();
   const { produtos, loading, paginacao, listar, excluir } = useProdutos();
   const [filtros, setFiltros] = useState({
     busca: '',
@@ -127,10 +129,12 @@ export default function ProdutosPage() {
             <FileText size={16} />
             <span className="hide-mobile">PDF</span>
           </button>
-          <NovoBotao to="/produtos/novo" className="btn btn-primary">
-            <Plus size={16} />
-            Novo Produto
-          </NovoBotao>
+          {!isOperadorSaida && (
+            <NovoBotao to="/produtos/novo" className="btn btn-primary">
+              <Plus size={16} />
+              Novo Produto
+            </NovoBotao>
+          )}
         </div>
       </div>
 
@@ -140,7 +144,7 @@ export default function ProdutosPage() {
             <div className="empty-state-icon"><PackageOpen size={32} /></div>
             <h3>Seu estoque está vazio</h3>
             <p>Cadastre seu primeiro produto para começar a gerenciar seu inventário.</p>
-            <NovoBotao to="/produtos/novo" className="btn btn-primary"><Plus size={16} /> Cadastrar produto</NovoBotao>
+            {!isOperadorSaida && <NovoBotao to="/produtos/novo" className="btn btn-primary"><Plus size={16} /> Cadastrar produto</NovoBotao>}
           </div>
         )}
 

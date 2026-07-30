@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MainLayout from '../components/layout/MainLayout';
 import { useMovimentacoes } from '../hooks/useMovimentacoes';
+import { useAuth } from '../hooks/useAuth';
 import { exportToCSV, exportToPDF } from '../lib/export';
 import { formatarDataHora, tempoRelativo } from '../lib/utils';
 import {
@@ -43,6 +44,7 @@ function SkeletonRows() {
 
 export default function MovimentacoesPage() {
   const navigate = useNavigate();
+  const { isOperadorSaida } = useAuth();
   const { movimentacoes, loading, paginacao, listar } = useMovimentacoes();
   const [filtros, setFiltros] = useState({ tipo: '', busca: '', pagina: 1, por_pagina: 15 });
   const [showFilters, setShowFilters] = useState(false);
@@ -92,9 +94,11 @@ export default function MovimentacoesPage() {
           <button className="btn btn-secondary btn-sm" onClick={handleExportPDF}>
             <FileText size={16} /> <span className="hide-mobile">PDF</span>
           </button>
-          <NovoBotao to="/movimentacoes/entrada" className="btn btn-secondary btn-sm">
-            <ArrowDownCircle size={16} /> <span className="hide-mobile">Entrada</span>
-          </NovoBotao>
+          {!isOperadorSaida && (
+            <NovoBotao to="/movimentacoes/entrada" className="btn btn-secondary btn-sm">
+              <ArrowDownCircle size={16} /> <span className="hide-mobile">Entrada</span>
+            </NovoBotao>
+          )}
           <NovoBotao to="/movimentacoes/saida" className="btn btn-primary btn-sm">
             <ArrowUpCircle size={16} /> <span className="hide-mobile">Saída</span>
           </NovoBotao>

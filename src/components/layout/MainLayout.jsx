@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useNotificacoes } from '../../hooks/useNotificacoes';
+import { ROLE_LABELS } from '../../lib/constants';
 import Logo from '../Logo';
 import GlobalSearch from '../ui/GlobalSearch';
 import LojaSwitcher from './LojaSwitcher';
@@ -17,7 +18,7 @@ import {
 } from 'lucide-react';
 
 export default function MainLayout({ children }) {
-  const { profile, isAdmin, isSuperAdmin, logout } = useAuth();
+  const { profile, isAdmin, isSuperAdmin, isOperadorSaida, logout } = useAuth();
   const { naoLidas } = useNotificacoes();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -102,15 +103,19 @@ export default function MainLayout({ children }) {
             {!sidebarCollapsed && 'Movimentações'}
           </NavLink>
 
-          <NavLink to="/fornecedores" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={() => setSidebarOpen(false)} title="Fornecedores">
-            <Truck size={18} />
-            {!sidebarCollapsed && 'Fornecedores'}
-          </NavLink>
+          {!isOperadorSaida && (
+            <NavLink to="/fornecedores" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={() => setSidebarOpen(false)} title="Fornecedores">
+              <Truck size={18} />
+              {!sidebarCollapsed && 'Fornecedores'}
+            </NavLink>
+          )}
 
-          <NavLink to="/locais" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={() => setSidebarOpen(false)} title="Locais de Estoque">
-            <MapPin size={18} />
-            {!sidebarCollapsed && 'Locais'}
-          </NavLink>
+          {!isOperadorSaida && (
+            <NavLink to="/locais" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={() => setSidebarOpen(false)} title="Locais de Estoque">
+              <MapPin size={18} />
+              {!sidebarCollapsed && 'Locais'}
+            </NavLink>
+          )}
 
           <NavLink to="/notificacoes" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={() => setSidebarOpen(false)} title="Notificações">
             <Bell size={18} />
@@ -118,22 +123,26 @@ export default function MainLayout({ children }) {
             {naoLidas > 0 && <span className="link-badge">{naoLidas}</span>}
           </NavLink>
 
-          {!sidebarCollapsed && <div className="sidebar-section-title">Inteligência</div>}
+          {!isOperadorSaida && (
+            <>
+              {!sidebarCollapsed && <div className="sidebar-section-title">Inteligência</div>}
 
-          <NavLink to="/relatorios" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={() => setSidebarOpen(false)} title="Relatórios">
-            <BarChart3 size={18} />
-            {!sidebarCollapsed && 'Relatórios'}
-          </NavLink>
+              <NavLink to="/relatorios" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={() => setSidebarOpen(false)} title="Relatórios">
+                <BarChart3 size={18} />
+                {!sidebarCollapsed && 'Relatórios'}
+              </NavLink>
 
-          <NavLink to="/inventario" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={() => setSidebarOpen(false)} title="Inventário Físico">
-            <ClipboardList size={18} />
-            {!sidebarCollapsed && 'Inventário Físico'}
-          </NavLink>
+              <NavLink to="/inventario" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={() => setSidebarOpen(false)} title="Inventário Físico">
+                <ClipboardList size={18} />
+                {!sidebarCollapsed && 'Inventário Físico'}
+              </NavLink>
 
-          <NavLink to="/sugestoes-compra" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={() => setSidebarOpen(false)} title="Sugestões de Compra">
-            <ShoppingCart size={18} />
-            {!sidebarCollapsed && 'Compras'}
-          </NavLink>
+              <NavLink to="/sugestoes-compra" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={() => setSidebarOpen(false)} title="Sugestões de Compra">
+                <ShoppingCart size={18} />
+                {!sidebarCollapsed && 'Compras'}
+              </NavLink>
+            </>
+          )}
 
           {isAdmin && (
             <>
@@ -187,7 +196,7 @@ export default function MainLayout({ children }) {
             {!sidebarCollapsed && (
               <div className="sidebar-user-info">
                 <div className="name">{profile?.nome || 'Usuário'}</div>
-                <div className="role">{profile?.role === 'ADMIN' ? 'Administrador' : 'Usuário'}</div>
+                <div className="role">{ROLE_LABELS[profile?.role] || 'Usuário'}</div>
               </div>
             )}
           </NavLink>

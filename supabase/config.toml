@@ -368,6 +368,16 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
+# As duas funções validam o JWT do chamador no próprio código (leem o header
+# Authorization, chamam auth.getUser() e conferem o papel na tabela users).
+# Sem estas seções o CLI publicaria com verify_jwt = true, o que mudaria o
+# comportamento já em produção — inclusive o preflight CORS.
+[functions.create-store-user]
+verify_jwt = false
+
+[functions.delete-store-user]
+verify_jwt = false
+
 [analytics]
 enabled = false
 port = 54337

@@ -9,6 +9,18 @@ export const ROLES = {
   USER: 'USER',
   ADMIN: 'ADMIN',
   SUPER_ADMIN: 'SUPER_ADMIN',
+  // Operador restrito: registra apenas SAÍDA e consulta o estoque da loja (ASBs).
+  OPERADOR_SAIDA: 'OPERADOR_SAIDA',
+};
+
+/**
+ * Rótulos legíveis para cada role.
+ */
+export const ROLE_LABELS = {
+  [ROLES.SUPER_ADMIN]: 'Super Admin',
+  [ROLES.ADMIN]: 'Administrador',
+  [ROLES.USER]: 'Usuário',
+  [ROLES.OPERADOR_SAIDA]: 'Operador (Saída)',
 };
 
 /**

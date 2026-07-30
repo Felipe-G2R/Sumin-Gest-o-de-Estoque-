@@ -116,13 +116,15 @@ export function AuthProvider({ children }) {
 
   const isSuperAdmin = profile?.role === ROLES.SUPER_ADMIN;
   const isAdmin = isSuperAdmin || profile?.role === ROLES.ADMIN;
+  // Operador restrito (ASB): só registra saída e consulta estoque.
+  const isOperadorSaida = profile?.role === ROLES.OPERADOR_SAIDA;
   const isAuthenticated = !!session && !!user && !!profile;
   const lojaId = profile?.loja_id;
 
   return (
     <AuthContext.Provider value={{
       user, profile, session, loading,
-      isAdmin, isSuperAdmin, isAuthenticated, lojaId,
+      isAdmin, isSuperAdmin, isOperadorSaida, isAuthenticated, lojaId,
       login, register, logout, updateProfile, uploadAvatar,
     }}>
       {children}

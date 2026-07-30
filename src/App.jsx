@@ -41,7 +41,7 @@ function LoadingSpinner() {
 
 // Barreira total: sem login = só vê LoginPage. Ponto.
 function AppRoutes() {
-  const { isAuthenticated, isAdmin, isSuperAdmin, loading } = useAuth();
+  const { isAuthenticated, isAdmin, isSuperAdmin, isOperadorSaida, loading } = useAuth();
 
   // Carregando auth — mostra spinner por no máximo 3s
   if (loading) return <LoadingSpinner />;
@@ -53,6 +53,29 @@ function AppRoutes() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
+    );
+  }
+
+  // OPERADOR DE SAÍDA (ASB) — acesso restrito: registra saída e consulta estoque.
+  // Qualquer rota fora deste conjunto cai na tela de saída.
+  if (isOperadorSaida) {
+    return (
+      <Suspense fallback={<LoadingSpinner />}>
+        <Routes>
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/perfil" element={<ProfilePage />} />
+          {/* Consulta de estoque (somente leitura — criar/editar é bloqueado pela RLS) */}
+          <Route path="/produtos" element={<ProdutosPage />} />
+          <Route path="/produtos/:id" element={<ProdutoDetalhesPage />} />
+          {/* Movimentações: histórico + registrar SAÍDA */}
+          <Route path="/movimentacoes" element={<MovimentacoesPage />} />
+          <Route path="/movimentacoes/saida" element={<MovimentacaoFormPage tipo="SAIDA" />} />
+          {/* Notificações */}
+          <Route path="/notificacoes" element={<NotificacoesPage />} />
+          {/* Tudo o mais → tela de saída */}
+          <Route path="*" element={<Navigate to="/movimentacoes/saida" replace />} />
+        </Routes>
+      </Suspense>
     );
   }
 

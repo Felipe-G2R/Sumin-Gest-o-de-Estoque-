@@ -494,6 +494,7 @@ export default function SuperAdminPage() {
                   onChange={e => setUserForm(p => ({ ...p, role: e.target.value }))}>
                   <option value="USER">Usuário</option>
                   <option value="ADMIN">Administrador da Loja</option>
+                  <option value="OPERADOR_SAIDA">Operador (somente saída — ASB)</option>
                 </select>
               </div>
               <div className="flex items-center gap-3 mt-4" style={{ justifyContent: 'flex-end' }}>
