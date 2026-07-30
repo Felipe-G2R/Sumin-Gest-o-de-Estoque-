@@ -101,6 +101,14 @@ supabase/
 
 ---
 
+## 🚢 Deploy
+
+Push em `main` publica o frontend na Vercel automaticamente. **O push é sempre pela conta `Felipe-G2R`** — a outra conta autenticada na máquina só tem leitura neste repositório.
+
+Passo a passo completo, incluindo Edge Functions e migrations: **[docs/DEPLOY.md](docs/DEPLOY.md)**.
+
+---
+
 ## 📋 Funcionalidades Implementadas
 
 - ✅ Autenticação (login, registro, logout, sessões)
