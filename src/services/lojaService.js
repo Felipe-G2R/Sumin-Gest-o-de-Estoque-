@@ -3,6 +3,22 @@
 // ============================================
 import { supabase } from '../lib/supabase';
 
+// Campos opcionais que, quando vazios, DEVEM virar null.
+// `cnpj` é UNIQUE: strings vazias ('') colidiriam entre si e impediriam
+// cadastrar mais de uma loja sem CNPJ (em Postgres, vários NULL são aceitos).
+const CAMPOS_OPCIONAIS = ['cnpj', 'endereco', 'telefone', 'email'];
+
+function normalizarLoja(dados) {
+  const out = { ...dados };
+  for (const campo of CAMPOS_OPCIONAIS) {
+    if (campo in out) {
+      const valor = out[campo]?.toString().trim();
+      out[campo] = valor ? valor : null;
+    }
+  }
+  return out;
+}
+
 export const lojaService = {
   async listar() {
     const { data, error } = await supabase
@@ -26,7 +42,7 @@ export const lojaService = {
   async criar({ nome, cnpj, endereco, telefone, email }) {
     const { data, error } = await supabase
       .from('lojas')
-      .insert({ nome, cnpj, endereco, telefone, email })
+      .insert(normalizarLoja({ nome, cnpj, endereco, telefone, email }))
       .select()
       .single();
     if (error) throw error;
@@ -36,7 +52,7 @@ export const lojaService = {
   async atualizar(id, updates) {
     const { data, error } = await supabase
       .from('lojas')
-      .update(updates)
+      .update(normalizarLoja(updates))
       .eq('id', id)
       .select()
       .single();

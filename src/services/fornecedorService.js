@@ -4,6 +4,29 @@
 import { supabase } from '../lib/supabase';
 import { aplicarFiltroLoja, exigirLojaParaCriar } from '../lib/queryHelpers';
 
+// Campos de texto opcionais que, quando vazios, DEVEM virar null.
+// Importante para `cnpj`: a coluna é UNIQUE — strings vazias ('') colidiriam
+// entre si e impediriam cadastrar mais de um fornecedor sem CNPJ.
+const CAMPOS_OPCIONAIS = ['cnpj', 'telefone', 'email', 'endereco'];
+
+function normalizarFornecedor(dados) {
+  const out = { ...dados };
+  for (const campo of CAMPOS_OPCIONAIS) {
+    if (campo in out) {
+      const valor = out[campo]?.toString().trim();
+      out[campo] = valor ? valor : null;
+    }
+  }
+  return out;
+}
+
+function traduzirErroSupabase(error) {
+  if (error?.code === '23505' && /cnpj/i.test(error.message || '')) {
+    return new Error('Já existe um fornecedor cadastrado com este CNPJ.');
+  }
+  return error;
+}
+
 export const fornecedorService = {
   async listar(filtros = {}) {
     let query = supabase
@@ -45,16 +68,17 @@ export const fornecedorService = {
   },
 
   async criar(dados, lojaId = null) {
-    const payload = exigirLojaParaCriar(dados, lojaId ?? dados.loja_id);
+    const payload = normalizarFornecedor(exigirLojaParaCriar(dados, lojaId ?? dados.loja_id));
     const { data: novoFornecedor, error } = await supabase.from('fornecedores').insert([payload]).select().single();
-    if (error) throw error;
+    if (error) throw traduzirErroSupabase(error);
 
     return novoFornecedor;
   },
 
   async atualizar(id, dados) {
-    const { data: atualizado, error } = await supabase.from('fornecedores').update(dados).eq('id', id).select().single();
-    if (error) throw error;
+    const payload = normalizarFornecedor(dados);
+    const { data: atualizado, error } = await supabase.from('fornecedores').update(payload).eq('id', id).select().single();
+    if (error) throw traduzirErroSupabase(error);
 
     return atualizado;
   },
