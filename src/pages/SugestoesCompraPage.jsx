@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useRelatorios } from '../hooks/useRelatorios';
 import MainLayout from '../components/layout/MainLayout';
-import { exportToCSV, exportToPDF } from '../lib/export';
+import { exportToCSV, exportToPDF, exportGroupedToCSV, exportGroupedToPDF } from '../lib/export';
 import { formatarMoeda } from '../lib/utils';
 import {
   ShoppingCart, RefreshCw, FileDown, FileText, AlertTriangle, Package,
@@ -83,12 +83,37 @@ export default function SugestoesCompraPage() {
     { key: 'urgencia', label: 'Urgência' },
   ];
 
+  // Monta os grupos por fornecedor no formato esperado pelas funções de export.
+  // No modo agrupado a coluna "Fornecedor" é redundante (vira o título do grupo).
+  function construirGruposExport() {
+    const mapa = {};
+    sugestoesCompra.forEach(s => {
+      const nome = s.fornecedor_nome || 'Sem fornecedor';
+      (mapa[nome] = mapa[nome] || []).push(s);
+    });
+    return Object.entries(mapa).map(([label, items]) => ({
+      label,
+      items,
+      subtotal: formatarMoeda(items.reduce((acc, i) => acc + (Number(i.custo_estimado) || 0), 0)),
+    }));
+  }
+
+  const colunasAgrupadas = exportColumns.filter(c => c.key !== 'fornecedor_nome');
+
   function handleExportCSV() {
-    exportToCSV(sugestoesCompra, 'sugestoes-compra', exportColumns);
+    if (groupByFornecedor) {
+      exportGroupedToCSV(construirGruposExport(), 'sugestoes-compra-por-fornecedor', colunasAgrupadas);
+    } else {
+      exportToCSV(sugestoesCompra, 'sugestoes-compra', exportColumns);
+    }
   }
 
   function handleExportPDF() {
-    exportToPDF('Sugestões de Compra', sugestoesCompra, exportColumns);
+    if (groupByFornecedor) {
+      exportGroupedToPDF('Sugestões de Compra por Fornecedor', construirGruposExport(), colunasAgrupadas);
+    } else {
+      exportToPDF('Sugestões de Compra', sugestoesCompra, exportColumns);
+    }
   }
 
   const totalSugestoes = sugestoesCompra.length;
